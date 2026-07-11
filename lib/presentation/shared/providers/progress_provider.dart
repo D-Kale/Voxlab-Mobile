@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../domain/models/lesson_status.dart';
@@ -28,21 +27,40 @@ final completedExerciseCountProvider = Provider<int>((ref) {
   return completedIds.length;
 });
 
+final progressFetchProvider = FutureProvider<List<Progress>>((ref) async {
+  final auth = ref.watch(authProvider);
+  final repo = ref.read(progressRepositoryProvider);
+
+  if (auth.isLoading) return [];
+  if (auth.isAuthenticated) {
+    return await repo.getRemoteProgress();
+  } else {
+    return await repo.getLocalProgress();
+  }
+});
+
 class ProgressNotifier extends Notifier<List<Progress>> {
   @override
   List<Progress> build() {
-    ref.watch(authProvider);
-    _loadForAuth();
-    return [];
+    final progressAsync = ref.watch(progressFetchProvider);
+    return progressAsync.when(
+      data: (list) {
+        _updateCompanionProviders(list);
+        return list;
+      },
+      loading: () => [],
+      error: (_, _) => [],
+    );
   }
 
-  void _loadForAuth() {
-    final auth = ref.read(authProvider);
-    if (auth.isLoading) return;
-    if (auth.isAuthenticated) {
-      _loadFromServer();
-    } else {
-      _loadFromDb();
+  void _updateCompanionProviders(List<Progress> list) {
+    if (list.isNotEmpty) {
+      final total = list.fold(0, (int sum, p) => sum + (p.score ?? 0));
+      ref.read(totalXpStateProvider.notifier).state = total;
+      final completedIds = list
+          .expand((p) => p.completedExercises.map((e) => e.exerciseId))
+          .toSet();
+      ref.read(completedExerciseIdsProvider.notifier).state = completedIds;
     }
   }
 
@@ -64,53 +82,13 @@ class ProgressNotifier extends Notifier<List<Progress>> {
     ];
   }
 
-  Future<void> _loadFromDb() async {
-    try {
-      final repo = ref.read(progressRepositoryProvider);
-      final list = await repo.getLocalProgress();
-      _updateFromList(list);
-    } catch (e) {
-      debugPrint('ProgressNotifier._loadFromDb: $e');
-    }
-  }
-
-  Future<void> _loadFromServer() async {
-    try {
-      final repo = ref.read(progressRepositoryProvider);
-      final list = await repo.getRemoteProgress();
-      _updateFromList(list);
-    } catch (e) {
-      debugPrint('ProgressNotifier._loadFromServer: $e');
-    }
-  }
-
   Future<void> reload() async {
-    final auth = ref.read(authProvider);
-    try {
-      final repo = ref.read(progressRepositoryProvider);
-      final list = auth.isAuthenticated
-          ? await repo.getRemoteProgress()
-          : await repo.getLocalProgress();
-      _updateFromList(list);
-    } catch (e) {
-      debugPrint('ProgressNotifier.reload: $e');
-    }
-  }
-
-  void _updateFromList(List<Progress> list) {
-    if (list.isNotEmpty) {
-      state = list;
-      final total = list.fold(0, (int sum, p) => sum + (p.score ?? 0));
-      ref.read(totalXpStateProvider.notifier).state = total;
-      final completedIds = list
-          .expand((p) => p.completedExercises.map((e) => e.exerciseId))
-          .toSet();
-      ref.read(completedExerciseIdsProvider.notifier).state = completedIds;
-    }
+    ref.invalidate(progressFetchProvider);
+    await ref.read(progressFetchProvider.future);
   }
 
   void replaceFromServer(List<Progress> serverProgress) {
-    _updateFromList(serverProgress);
+    _updateCompanionProviders(serverProgress);
   }
 
   Future<void> saveProgress({

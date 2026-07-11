@@ -8,15 +8,17 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(QueryExecutor e) : super(e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
       onCreate: (m) => m.createAll(),
       onUpgrade: (m, from, to) async {
-        if (from == 1) {
+        if (from < 3) {
+          // Recrear tabla para garantizar schema correcto
           await m.deleteTable('guest_progress');
+          await m.deleteTable('guest_progress_table');
           await m.createTable(guestProgressTable);
         }
       },
