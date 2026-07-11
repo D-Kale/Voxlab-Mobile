@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/network/api_exceptions.dart';
 import '../../../core/router/routes.dart';
+import '../../../domain/models/exercise.dart';
 import '../../shared/providers/content_provider.dart';
 import '../../shared/providers/progress_provider.dart';
 import '../../shared/widgets/loading_skeleton.dart';
@@ -23,7 +24,7 @@ class LessonListScreen extends ConsumerWidget {
 
     final completedExerciseIds = progress
         .where((p) => p.status.isCompleted)
-        .map((p) => p.exerciseId)
+        .expand((p) => p.completedExercises.map((e) => e.exerciseId))
         .toSet();
 
     return Scaffold(
@@ -129,18 +130,17 @@ class _SerpentineExercisePath extends StatelessWidget {
     required this.lessonId,
   });
 
-  final List exercises;
+  final List<Exercise> exercises;
   final Set<String> completedExerciseIds;
   final int lessonId;
 
-  /// Calcula el alineamiento serpenteante basado en el índice
   Alignment getSnakeAlignment(int index) {
     return switch (index % 4) {
       0 => Alignment.center,
-      1 => Alignment(0.5, 0), // derecha
+      1 => Alignment(0.5, 0),
       2 => Alignment.center,
-      3 => Alignment(-0.5, 0), // izquierda
-      _ => Alignment.center, // fallback
+      3 => Alignment(-0.5, 0),
+      _ => Alignment.center,
     };
   }
 
@@ -169,7 +169,6 @@ class _SerpentineExercisePath extends StatelessWidget {
       );
     }
 
-    // Verificar si la lección está completada (todos los ejercicios)
     final isLessonCompleted = exercises.every((e) =>
         completedExerciseIds.contains(e.id));
 
@@ -177,26 +176,25 @@ class _SerpentineExercisePath extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          // Banner de lección completada
           if (isLessonCompleted)
             Container(
               padding: const EdgeInsets.all(12),
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.success.withValues(alpha: 0.3),
+                  color: AppColors.primary.withValues(alpha: 0.3),
                 ),
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                  Icon(Icons.check_circle, color: AppColors.primary, size: 20),
                   SizedBox(width: 8),
                   Text(
                     '¡Lección completada!',
                     style: TextStyle(
-                      color: AppColors.success,
+                      color: AppColors.primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -204,28 +202,28 @@ class _SerpentineExercisePath extends StatelessWidget {
               ),
             ),
 
-          // Camino serpenteante de ejercicios
           ...exercises.asMap().entries.map((entry) {
             final index = entry.key;
             final exercise = entry.value;
             final isCompleted = completedExerciseIds.contains(exercise.id);
+            final isLocked = _isExerciseLocked(index, exercises, completedExerciseIds);
 
             return Column(
               children: [
-                // Nodo de ejercicio
                 Align(
                   alignment: getSnakeAlignment(index),
                   child: SerpentineExerciseNode(
                     exercise: exercise,
                     isCompleted: isCompleted,
-                    onTap: () => context.push(
-                      AppRoutes.exercisePath(exercise.id),
-                      extra: {'exercise': exercise, 'lessonId': lessonId},
-                    ),
+                    isLocked: isLocked,
+                    onTap: isLocked
+                        ? null
+                        : () => context.push(
+                              AppRoutes.exercisePath(exercise.id),
+                              extra: {'exercise': exercise, 'lessonId': lessonId},
+                            ),
                   ),
                 ),
-
-                // Espacio vertical
                 if (index < exercises.length - 1)
                   const SizedBox(height: 24),
               ],
@@ -235,4 +233,17 @@ class _SerpentineExercisePath extends StatelessWidget {
       ),
     );
   }
+}
+
+bool _isExerciseLocked(
+  int index,
+  List<Exercise> exercises,
+  Set<String> completedExerciseIds,
+) {
+  // Primer ejercicio siempre disponible
+  if (index == 0) return false;
+
+  // El ejercicio anterior debe estar completado
+  final previous = exercises[index - 1];
+  return !completedExerciseIds.contains(previous.id);
 }

@@ -2,31 +2,36 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../domain/models/exercise.dart';
 
-/// Nodo de ejercicio en el camino serpenteante
 class SerpentineExerciseNode extends StatelessWidget {
   const SerpentineExerciseNode({
     super.key,
     required this.exercise,
     required this.isCompleted,
+    this.isLocked = false,
     this.onTap,
   });
 
   final Exercise exercise;
   final bool isCompleted;
+  final bool isLocked;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final color = isCompleted
-        ? AppColors.success
-        : AppColors.primary;
+    final color = switch ((isCompleted, isLocked)) {
+      (true, _) => AppColors.primary,
+      (_, true) => AppColors.onSurfaceVariant,
+      (false, false) => AppColors.primary,
+    };
+
+    final opacity = isLocked ? 0.45 : (isCompleted ? 0.8 : 1.0);
 
     final iconData = _getIconForExercise(exercise);
 
     return GestureDetector(
-      onTap: isCompleted ? null : onTap,
+      onTap: (isCompleted || isLocked) ? null : onTap,
       child: Opacity(
-        opacity: isCompleted ? 0.7 : 1.0,
+        opacity: opacity,
         child: Container(
           width: 48,
           height: 48,
@@ -34,16 +39,20 @@ class SerpentineExerciseNode extends StatelessWidget {
             shape: BoxShape.circle,
             color: color.withValues(alpha: 0.15),
             border: Border.all(
-              color: color,
+              color: isLocked
+                  ? AppColors.onSurfaceVariant.withValues(alpha: 0.3)
+                  : color,
               width: 3,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.3),
-                offset: const Offset(0, 3),
-                blurRadius: 6,
-              ),
-            ],
+            boxShadow: isLocked
+                ? null
+                : [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.3),
+                      offset: const Offset(0, 3),
+                      blurRadius: 6,
+                    ),
+                  ],
           ),
           child: Icon(
             iconData,
@@ -56,9 +65,9 @@ class SerpentineExerciseNode extends StatelessWidget {
   }
 
   IconData _getIconForExercise(Exercise exercise) {
-    if (isCompleted) {
-      return Icons.check;
-    }
+    if (isCompleted) return Icons.check;
+
+    if (isLocked) return Icons.lock_outline;
 
     return switch (exercise.type) {
       'quiz' => Icons.quiz_outlined,
