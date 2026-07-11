@@ -6,10 +6,10 @@ import '../../../core/router/routes.dart';
 import '../../shared/providers/auth_provider.dart';
 import '../../shared/providers/content_provider.dart';
 import '../../shared/providers/progress_provider.dart';
+import 'widgets/leaderboard_section.dart';
 import 'widgets/quick_action_card.dart';
-import 'widgets/recent_activity_card.dart';
-import 'widgets/stats_grid.dart';
 import 'widgets/user_header_card.dart';
+import 'widgets/weekly_chart.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -17,9 +17,10 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
-    final totalXp = ref.watch(totalXpStateProvider);
-    final completedCount = ref.watch(completedExerciseCountProvider);
     final progress = ref.watch(progressNotifierProvider);
+    final userXp = auth.user?.xp ?? 0;
+
+    final leaderboard = _buildLeaderboard(auth.user?.name ?? 'Vos', userXp);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -42,14 +43,9 @@ class HomeScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            UserHeaderCard(auth: auth, totalXp: totalXp),
+            UserHeaderCard(auth: auth, totalXp: userXp),
             const SizedBox(height: 20),
-            StatsGrid(
-              totalXp: auth.user?.xp ?? totalXp,
-              streakDays: auth.user?.streakDays ?? 0,
-              completedCount: completedCount,
-              totalExercises: progress.length,
-            ),
+            WeeklyChart(progress: progress),
             const SizedBox(height: 20),
             const Text(
               'Acceso rápido',
@@ -84,10 +80,23 @@ class HomeScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 20),
-            RecentActivityCard(progress: progress),
+            LeaderboardSection(
+              entries: leaderboard,
+              currentUserXp: userXp,
+            ),
           ],
         ),
       ),
     );
+  }
+
+  List<LeaderboardEntry> _buildLeaderboard(String userName, int userXp) {
+    return [
+      const LeaderboardEntry(rank: 1, name: 'Axel', xp: 2840),
+      const LeaderboardEntry(rank: 2, name: 'Martina', xp: 2100),
+      const LeaderboardEntry(rank: 3, name: 'Tomás', xp: 1950),
+      LeaderboardEntry(rank: 4, name: userName, xp: userXp, isCurrentUser: true),
+      const LeaderboardEntry(rank: 5, name: 'Camila', xp: 1200),
+    ];
   }
 }

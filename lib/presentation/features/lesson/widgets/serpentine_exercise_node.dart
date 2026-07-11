@@ -29,7 +29,7 @@ class SerpentineExerciseNode extends StatelessWidget {
     final iconData = _getIconForExercise(exercise);
 
     return GestureDetector(
-      onTap: (isCompleted || isLocked) ? null : onTap,
+      onTap: isLocked ? null : onTap,
       child: Opacity(
         opacity: opacity,
         child: Container(

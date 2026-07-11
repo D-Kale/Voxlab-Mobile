@@ -10,7 +10,6 @@ import '../../shared/providers/auth_provider.dart';
 import '../../shared/providers/content_provider.dart';
 import '../../shared/providers/progress_provider.dart';
 import '../../shared/widgets/loading_skeleton.dart';
-import '../../shared/widgets/xp_bar.dart';
 import 'widgets/track_island.dart';
 
 class MapScreen extends ConsumerWidget {
@@ -21,7 +20,6 @@ class MapScreen extends ConsumerWidget {
     ref.watch(loadXpFromStorageProvider);
     ref.watch(progressNotifierProvider);
     final tracksAsync = ref.watch(tracksProvider);
-    final totalXp = ref.watch(totalXpStateProvider);
     final completedExerciseIds = ref.watch(completedExerciseIdsProvider);
 
     return Scaffold(
@@ -46,7 +44,6 @@ class MapScreen extends ConsumerWidget {
         child: tracksAsync.when(
           data: (tracks) => _IslandListView(
             tracks: tracks,
-            totalXp: totalXp,
             completedExerciseIds: completedExerciseIds,
           ),
           loading: () => const Padding(
@@ -139,12 +136,10 @@ class MapScreen extends ConsumerWidget {
 class _IslandListView extends StatelessWidget {
   const _IslandListView({
     required this.tracks,
-    required this.totalXp,
     required this.completedExerciseIds,
   });
 
   final List<Track> tracks;
-  final int totalXp;
   final Set<String> completedExerciseIds;
 
   @override
@@ -172,56 +167,15 @@ class _IslandListView extends StatelessWidget {
         : ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Semantics(
-                        excludeSemantics: true,
-                        child: Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.auto_awesome,
-                            color: AppColors.primary,
-                            size: 24,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Tu progreso',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.onSurface,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            XpBar(xp: totalXp),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
               ...tracks.map(
-                (track) => TrackIsland(
-                  track: track,
-                  completedExerciseIds: completedExerciseIds,
-                  onLessonTap: (lessonId) =>
-                      context.push(AppRoutes.lessonPath(lessonId)),
+                (track) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: TrackIsland(
+                    track: track,
+                    completedExerciseIds: completedExerciseIds,
+                    onExerciseTap: (exerciseId) =>
+                        context.push(AppRoutes.exercisePath(exerciseId)),
+                  ),
                 ),
               ),
             ],

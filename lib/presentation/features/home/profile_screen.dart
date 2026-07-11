@@ -22,6 +22,7 @@ class ProfileScreen extends ConsumerWidget {
     final totalXp = ref.watch(totalXpStateProvider);
     final completedCount = ref.watch(completedExerciseCountProvider);
     final progress = ref.watch(progressNotifierProvider);
+    final totalExercises = ref.watch(totalExercisesProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -46,7 +47,7 @@ class ProfileScreen extends ConsumerWidget {
               streakDays: user.streakDays,
               completedCount: completedCount,
               totalXp: totalXp,
-              totalExercises: progress.length,
+              totalExercises: totalExercises,
             ),
             const SizedBox(height: 20),
             CompletedExercisesCard(progress: progress),

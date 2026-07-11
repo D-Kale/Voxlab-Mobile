@@ -226,6 +226,7 @@ class _ExerciseBody extends ConsumerWidget {
             {'exercise_id': exercise.id, 'score': effectiveScore},
           ],
         );
+        await ref.read(authProvider.notifier).refreshUser();
       } catch (e) {
         debugPrint('ExercisePlayer save server progress error: $e');
       }

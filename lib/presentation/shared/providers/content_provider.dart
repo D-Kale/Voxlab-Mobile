@@ -48,3 +48,15 @@ final exerciseNameMapProvider = Provider<Map<String, String>>((ref) {
     error: (_, __) => const {},
   );
 });
+
+final totalExercisesProvider = Provider<int>((ref) {
+  final tracksAsync = ref.watch(tracksProvider);
+  return tracksAsync.when(
+    data: (tracks) => tracks.fold(0, (sum, t) =>
+      sum + t.modules.fold(0, (mSum, m) =>
+        mSum + m.lessons.fold(0, (lSum, l) =>
+          lSum + l.exercises.length))),
+    loading: () => 0,
+    error: (_, __) => 0,
+  );
+});
