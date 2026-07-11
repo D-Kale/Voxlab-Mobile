@@ -1,0 +1,21 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    - prefer_const_constructors
+    - prefer_const_declarations
+    - prefer_final_locals
+    - sort_constructors_first
+    - unnecessary_overrides
+    - prefer_single_quotes
+    - lines_longer_than_80_chars
+
+analyzer:
+  errors:
+    invalid_annotation_target: ignore
+    missing_return: error
+    dead_code: warning
+  exclude:
+    - "**/*.freezed.dart"
+    - "**/*.g.dart"
+    - "**/*.gr.dart"
