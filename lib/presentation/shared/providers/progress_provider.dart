@@ -103,7 +103,6 @@ class ProgressNotifier extends Notifier<List<Progress>> {
       final total = list.fold(0, (int sum, p) => sum + (p.score ?? 0));
       ref.read(totalXpStateProvider.notifier).state = total;
       final completedIds = list
-          .where((p) => p.status == LessonStatus.completed)
           .expand((p) => p.completedExercises.map((e) => e.exerciseId))
           .toSet();
       ref.read(completedExerciseIdsProvider.notifier).state = completedIds;

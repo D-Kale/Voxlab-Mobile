@@ -222,12 +222,9 @@ class _ExerciseBody extends ConsumerWidget {
         await ref.read(progressServiceProvider).updateProgress(
           lessonId!,
           effectiveScore,
-        );
-        ref.read(progressNotifierProvider.notifier).addProgress(
-          exerciseId: exercise.id,
-          lessonId: lessonId,
-          status: LessonStatus.completed,
-          score: effectiveScore,
+          exercises: [
+            {'exercise_id': exercise.id, 'score': effectiveScore},
+          ],
         );
       } catch (e) {
         debugPrint('ExercisePlayer save server progress error: $e');

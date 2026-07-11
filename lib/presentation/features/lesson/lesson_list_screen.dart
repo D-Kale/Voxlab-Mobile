@@ -20,12 +20,8 @@ class LessonListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final lessonAsync = ref.watch(lessonProvider(lessonId));
     final exercisesAsync = ref.watch(lessonExercisesProvider(lessonId));
-    final progress = ref.watch(progressNotifierProvider);
 
-    final completedExerciseIds = progress
-        .where((p) => p.status.isCompleted)
-        .expand((p) => p.completedExercises.map((e) => e.exerciseId))
-        .toSet();
+    final completedExerciseIds = ref.watch(completedExerciseIdsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
