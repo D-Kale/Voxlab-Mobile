@@ -85,6 +85,35 @@ class SerpentineLessonNode extends StatelessWidget {
                         : color,
               ),
             ),
+
+            // Badge de % para progreso parcial
+            if (progressPercent > 0 && progressPercent < 1 && !isCompleted)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: AppColors.background,
+                      width: 2,
+                    ),
+                  ),
+                  child: Text(
+                    '${(progressPercent * 100).round()}%',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.onPrimary,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

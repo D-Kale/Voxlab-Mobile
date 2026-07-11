@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../shared/widgets/section_header.dart';
 import '../../../../domain/models/progress.dart';
+import '../../../shared/providers/content_provider.dart';
 
-class CompletedExercisesCard extends StatelessWidget {
+class CompletedExercisesCard extends ConsumerWidget {
   const CompletedExercisesCard({super.key, required this.progress});
 
   final List<Progress> progress;
 
   @override
-  Widget build(BuildContext context) {
-    final completed = progress.where((p) => p.status.isCompleted).toList();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nameMap = ref.watch(exerciseNameMapProvider);
+
+    final completed = progress
+        .where((p) => p.status.isCompleted)
+        .expand((p) => p.completedExercises)
+        .toList();
 
     if (completed.isEmpty) return const SizedBox.shrink();
 
@@ -22,7 +29,7 @@ class CompletedExercisesCard extends StatelessWidget {
           children: [
             const SectionHeader(icon: Icons.checklist, title: 'Ejercicios completados'),
             const SizedBox(height: 12),
-            ...completed.map((p) => Padding(
+            ...completed.map((ex) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Row(
                 children: [
@@ -30,14 +37,14 @@ class CompletedExercisesCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      p.exerciseId,
+                      nameMap[ex.exerciseId] ?? ex.exerciseId,
                       style: const TextStyle(
                         fontSize: 14,
                         color: AppColors.onSurface,
                       ),
                     ),
                   ),
-                  if (p.score != null)
+                  if (ex.score > 0)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
@@ -45,7 +52,7 @@ class CompletedExercisesCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        '+${p.score} XP',
+                        '+${ex.score} XP',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,

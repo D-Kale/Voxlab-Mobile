@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_colors.dart';
 import '../../../shared/widgets/xp_bar.dart';
 import '../../../shared/widgets/section_header.dart';
 

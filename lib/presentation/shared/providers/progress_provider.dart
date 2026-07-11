@@ -24,8 +24,8 @@ final loadXpFromStorageProvider = FutureProvider<void>((ref) async {
 });
 
 final completedExerciseCountProvider = Provider<int>((ref) {
-  final progress = ref.watch(progressNotifierProvider);
-  return progress.where((p) => p.status.isCompleted).length;
+  final completedIds = ref.watch(completedExerciseIdsProvider);
+  return completedIds.length;
 });
 
 class ProgressNotifier extends Notifier<List<Progress>> {
@@ -104,7 +104,7 @@ class ProgressNotifier extends Notifier<List<Progress>> {
       ref.read(totalXpStateProvider.notifier).state = total;
       final completedIds = list
           .where((p) => p.status == LessonStatus.completed)
-          .map((p) => p.exerciseId)
+          .expand((p) => p.completedExercises.map((e) => e.exerciseId))
           .toSet();
       ref.read(completedExerciseIdsProvider.notifier).state = completedIds;
     }

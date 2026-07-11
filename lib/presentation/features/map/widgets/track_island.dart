@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../domain/models/lesson_status.dart';
+import '../../../../domain/models/module.dart';
 import '../../../../domain/models/track.dart';
 import '../../../../utils/lesson_progress_utils.dart';
 import 'module_ship.dart';
-import 'serpentine_lesson_node.dart';
-import 'bezier_connector.dart';
+import 'serpentine_path_with_connectors.dart';
 
 class TrackIsland extends StatelessWidget {
   const TrackIsland({
@@ -19,20 +18,22 @@ class TrackIsland extends StatelessWidget {
   final Set<String> completedExerciseIds;
   final void Function(int lessonId) onLessonTap;
 
-  /// Calcula el alineamiento serpenteante basado en el índice
-  Alignment getSnakeAlignment(int index) {
-    return switch (index % 4) {
-      0 => Alignment.center,
-      1 => Alignment(0.5, 0), // derecha
-      2 => Alignment.center,
-      3 => Alignment(-0.5, 0), // izquierda
-      _ => Alignment.center, // fallback
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
-    final completedCount = track.modules.fold<int>(
+    // Filtrar módulos/lecciones sin ejercicios
+    final filteredModules = track.modules
+        .map((m) => Module(
+              id: m.id,
+              trackId: m.trackId,
+              title: m.title,
+              description: m.description,
+              orderIndex: m.orderIndex,
+              lessons: m.lessons.where((l) => l.exercises.isNotEmpty).toList(),
+            ))
+        .where((m) => m.lessons.isNotEmpty)
+        .toList();
+
+    final completedCount = filteredModules.fold<int>(
       0,
       (sum, m) => sum + m.lessons.where((l) {
         final progress = computeLessonProgress(l, completedExerciseIds);
@@ -40,7 +41,7 @@ class TrackIsland extends StatelessWidget {
             progress.totalExercises > 0;
       }).length,
     );
-    final totalCount = track.modules.fold<int>(
+    final totalCount = filteredModules.fold<int>(
       0,
       (sum, m) => sum + m.lessons.length,
     );
@@ -123,7 +124,7 @@ class TrackIsland extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Módulos como barcos con camino serpenteante
-            ...track.modules.asMap().entries.map((entry) {
+            ...filteredModules.asMap().entries.map((entry) {
               final moduleIndex = entry.key;
               final module = entry.value;
 
@@ -145,7 +146,12 @@ class TrackIsland extends StatelessWidget {
                   ),
 
                   // Camino serpenteante de lecciones
-                  ..._buildSerpentinePath(module.lessons, moduleIndex),
+                  SerpentinePathWithConnectors(
+                    lessons: module.lessons,
+                    completedExerciseIds: completedExerciseIds,
+                    moduleIndex: moduleIndex,
+                    onLessonTap: onLessonTap,
+                  ),
                 ],
               );
             }),
@@ -153,70 +159,5 @@ class TrackIsland extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  List<Widget> _buildSerpentinePath(
-    List lessons,
-    int moduleIndex,
-  ) {
-    final widgets = <Widget>[];
-    final lessonProgressList = <LessonProgressInfo>[];
-
-    // Calcular progreso de todas las lecciones primero
-    for (final lesson in lessons) {
-      lessonProgressList.add(computeLessonProgress(lesson, completedExerciseIds));
-    }
-
-    // Determinar estados con locking
-    for (var i = 0; i < lessons.length; i++) {
-      lessonProgressList[i] = LessonProgressInfo(
-        lessonId: lessonProgressList[i].lessonId,
-        status: determineLessonStatus(i, lessonProgressList[i], lessonProgressList),
-        completedExercises: lessonProgressList[i].completedExercises,
-        totalExercises: lessonProgressList[i].totalExercises,
-        progressPercent: lessonProgressList[i].progressPercent,
-      );
-    }
-
-    // Construir nodos y conectores
-    for (var i = 0; i < lessons.length; i++) {
-      final lesson = lessons[i];
-      final progressInfo = lessonProgressList[i];
-
-      // Conector desde el nodo anterior (si no es el primero)
-      if (i > 0) {
-        final prevProgress = lessonProgressList[i - 1];
-        widgets.add(
-          SizedBox(
-            height: 80, // Espacio para el conector
-            child: BezierConnector(
-              startOffset: Offset(0, 0), // Se calculará en runtime
-              endOffset: Offset(0, 80),
-              isConnected: prevProgress.status == LessonStatus.completed,
-            ),
-          ),
-        );
-      }
-
-      // Nodo de lección
-      widgets.add(
-        Align(
-          alignment: getSnakeAlignment(i),
-          child: SerpentineLessonNode(
-            lesson: lesson,
-            status: progressInfo.status,
-            progressPercent: progressInfo.progressPercent,
-            onTap: () => onLessonTap(lesson.id),
-          ),
-        ),
-      );
-
-      // Espacio vertical
-      if (i < lessons.length - 1) {
-        widgets.add(const SizedBox(height: 16));
-      }
-    }
-
-    return widgets;
   }
 }

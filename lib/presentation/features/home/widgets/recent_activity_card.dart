@@ -1,25 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../domain/models/progress.dart';
+import '../../../shared/providers/content_provider.dart';
+import '../../../../utils/exercise_name_utils.dart';
 
-class RecentActivityCard extends StatelessWidget {
+class RecentActivityCard extends ConsumerWidget {
   const RecentActivityCard({super.key, required this.progress});
 
   final List<Progress> progress;
 
   @override
-  Widget build(BuildContext context) {
-    final completed = progress
-        .where((p) => p.status.isCompleted)
-        .toList()
-      ..sort((a, b) {
-        if (a.completedAt == null && b.completedAt == null) return 0;
-        if (a.completedAt == null) return 1;
-        if (b.completedAt == null) return -1;
-        return b.completedAt!.compareTo(a.completedAt!);
-      });
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nameMap = ref.watch(exerciseNameMapProvider);
 
-    final recent = completed.take(5).toList();
+    // Collect all completed exercises from all progress records
+    final allCompleted = <({String id, int score, DateTime? completedAt})>[];
+    for (final p in progress) {
+      if (p.status.isCompleted) {
+        for (final ex in p.completedExercises) {
+          allCompleted.add((
+            id: ex.exerciseId,
+            score: ex.score,
+            completedAt: p.completedAt,
+          ));
+        }
+      }
+    }
+    allCompleted.sort((a, b) {
+      if (a.completedAt == null && b.completedAt == null) return 0;
+      if (a.completedAt == null) return 1;
+      if (b.completedAt == null) return -1;
+      return b.completedAt!.compareTo(a.completedAt!);
+    });
+
+    final recent = allCompleted.take(5).toList();
 
     return Card(
       child: Padding(
@@ -63,7 +78,7 @@ class RecentActivityCard extends StatelessWidget {
                 ),
               )
             else
-              ...recent.map((p) => Padding(
+              ...recent.map((item) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
                   children: [
@@ -86,7 +101,7 @@ class RecentActivityCard extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        p.exerciseId,
+                        nameMap[item.id] ?? formatExerciseType(''),
                         style: const TextStyle(
                           fontSize: 14,
                           color: AppColors.onSurface,
@@ -95,7 +110,7 @@ class RecentActivityCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (p.score != null)
+                    if (item.score > 0)
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
@@ -106,7 +121,7 @@ class RecentActivityCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          '+${p.score} XP',
+                          '+${item.score} XP',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,

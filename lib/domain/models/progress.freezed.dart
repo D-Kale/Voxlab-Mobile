@@ -28,6 +28,8 @@ mixin _$Progress {
   int? get xpEarned => throw _privateConstructorUsedError;
   DateTime? get completedAt => throw _privateConstructorUsedError;
   DateTime? get startedAt => throw _privateConstructorUsedError;
+  List<CompletedExercise> get completedExercises =>
+      throw _privateConstructorUsedError;
 
   /// Serializes this Progress to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -52,6 +54,7 @@ abstract class $ProgressCopyWith<$Res> {
     int? xpEarned,
     DateTime? completedAt,
     DateTime? startedAt,
+    List<CompletedExercise> completedExercises,
   });
 }
 
@@ -77,6 +80,7 @@ class _$ProgressCopyWithImpl<$Res, $Val extends Progress>
     Object? xpEarned = freezed,
     Object? completedAt = freezed,
     Object? startedAt = freezed,
+    Object? completedExercises = null,
   }) {
     return _then(
       _value.copyWith(
@@ -108,6 +112,10 @@ class _$ProgressCopyWithImpl<$Res, $Val extends Progress>
                 ? _value.startedAt
                 : startedAt // ignore: cast_nullable_to_non_nullable
                       as DateTime?,
+            completedExercises: null == completedExercises
+                ? _value.completedExercises
+                : completedExercises // ignore: cast_nullable_to_non_nullable
+                      as List<CompletedExercise>,
           )
           as $Val,
     );
@@ -131,6 +139,7 @@ abstract class _$$ProgressImplCopyWith<$Res>
     int? xpEarned,
     DateTime? completedAt,
     DateTime? startedAt,
+    List<CompletedExercise> completedExercises,
   });
 }
 
@@ -155,6 +164,7 @@ class __$$ProgressImplCopyWithImpl<$Res>
     Object? xpEarned = freezed,
     Object? completedAt = freezed,
     Object? startedAt = freezed,
+    Object? completedExercises = null,
   }) {
     return _then(
       _$ProgressImpl(
@@ -186,6 +196,10 @@ class __$$ProgressImplCopyWithImpl<$Res>
             ? _value.startedAt
             : startedAt // ignore: cast_nullable_to_non_nullable
                   as DateTime?,
+        completedExercises: null == completedExercises
+            ? _value._completedExercises
+            : completedExercises // ignore: cast_nullable_to_non_nullable
+                  as List<CompletedExercise>,
       ),
     );
   }
@@ -202,7 +216,8 @@ class _$ProgressImpl implements _Progress {
     this.xpEarned,
     this.completedAt,
     this.startedAt,
-  });
+    final List<CompletedExercise> completedExercises = const [],
+  }) : _completedExercises = completedExercises;
 
   factory _$ProgressImpl.fromJson(Map<String, dynamic> json) =>
       _$$ProgressImplFromJson(json);
@@ -221,10 +236,19 @@ class _$ProgressImpl implements _Progress {
   final DateTime? completedAt;
   @override
   final DateTime? startedAt;
+  final List<CompletedExercise> _completedExercises;
+  @override
+  @JsonKey()
+  List<CompletedExercise> get completedExercises {
+    if (_completedExercises is EqualUnmodifiableListView)
+      return _completedExercises;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_completedExercises);
+  }
 
   @override
   String toString() {
-    return 'Progress(exerciseId: $exerciseId, lessonId: $lessonId, status: $status, score: $score, xpEarned: $xpEarned, completedAt: $completedAt, startedAt: $startedAt)';
+    return 'Progress(exerciseId: $exerciseId, lessonId: $lessonId, status: $status, score: $score, xpEarned: $xpEarned, completedAt: $completedAt, startedAt: $startedAt, completedExercises: $completedExercises)';
   }
 
   @override
@@ -243,7 +267,11 @@ class _$ProgressImpl implements _Progress {
             (identical(other.completedAt, completedAt) ||
                 other.completedAt == completedAt) &&
             (identical(other.startedAt, startedAt) ||
-                other.startedAt == startedAt));
+                other.startedAt == startedAt) &&
+            const DeepCollectionEquality().equals(
+              other._completedExercises,
+              _completedExercises,
+            ));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -257,6 +285,7 @@ class _$ProgressImpl implements _Progress {
     xpEarned,
     completedAt,
     startedAt,
+    const DeepCollectionEquality().hash(_completedExercises),
   );
 
   /// Create a copy of Progress
@@ -282,6 +311,7 @@ abstract class _Progress implements Progress {
     final int? xpEarned,
     final DateTime? completedAt,
     final DateTime? startedAt,
+    final List<CompletedExercise> completedExercises,
   }) = _$ProgressImpl;
 
   factory _Progress.fromJson(Map<String, dynamic> json) =
@@ -301,6 +331,8 @@ abstract class _Progress implements Progress {
   DateTime? get completedAt;
   @override
   DateTime? get startedAt;
+  @override
+  List<CompletedExercise> get completedExercises;
 
   /// Create a copy of Progress
   /// with the given fields replaced by the non-null parameter values.

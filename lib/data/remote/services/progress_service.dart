@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../domain/models/progress.dart';
+import '../../../domain/models/completed_exercise.dart';
 import '../../../domain/models/lesson_status.dart';
 
 class ProgressService {
@@ -15,18 +16,28 @@ class ProgressService {
     return data.map((e) => _mapProgress(e as Map<String, dynamic>)).toList();
   }
 
-  Future<Progress> completeLesson(int lessonId, int score) async {
+  Future<Progress> completeLesson(
+    int lessonId,
+    int score, {
+    List<Map<String, dynamic>> exercises = const [],
+  }) async {
     final response = await _dio.post('/progress', data: {
       'lesson_id': lessonId,
       'score': score,
+      if (exercises.isNotEmpty) 'exercises': exercises,
     });
     final data = response.data['data'] as Map<String, dynamic>;
     return _mapProgress(data);
   }
 
-  Future<Progress> updateProgress(int lessonId, int score) async {
+  Future<Progress> updateProgress(
+    int lessonId,
+    int score, {
+    List<Map<String, dynamic>> exercises = const [],
+  }) async {
     final response = await _dio.patch('/progress/$lessonId', data: {
       'score': score,
+      if (exercises.isNotEmpty) 'exercises': exercises,
     });
     final data = response.data['data'] as Map<String, dynamic>;
     return _mapProgress(data);
@@ -44,6 +55,12 @@ class ProgressService {
   Progress _mapProgress(Map<String, dynamic> json) {
     final lessonId = json['lesson_id'] as int;
     final xpEarned = json['xp_earned'] as int?;
+
+    final completedExercises = (json['completed_exercises'] as List<dynamic>?)
+            ?.map((e) => CompletedExercise.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        [];
+
     return Progress(
       exerciseId: lessonId.toString(),
       lessonId: lessonId,
@@ -53,6 +70,7 @@ class ProgressService {
       ),
       score: xpEarned,
       xpEarned: xpEarned,
+      completedExercises: completedExercises,
       completedAt:
           json['completed_at'] != null
               ? DateTime.tryParse(json['completed_at'] as String)
