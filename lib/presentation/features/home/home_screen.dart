@@ -6,6 +6,8 @@ import '../../../core/router/routes.dart';
 import '../../shared/providers/auth_provider.dart';
 import '../../shared/providers/content_provider.dart';
 import '../../shared/providers/progress_provider.dart';
+import 'providers/leaderboard_provider.dart';
+import 'providers/weekly_progress_provider.dart';
 import 'widgets/leaderboard_section.dart';
 import 'widgets/quick_action_card.dart';
 import 'widgets/user_header_card.dart';
@@ -17,10 +19,10 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
-    final progress = ref.watch(progressNotifierProvider);
     final userXp = auth.user?.xp ?? 0;
+    final userName = auth.user?.name ?? 'Vos';
 
-    final leaderboard = _buildLeaderboard(auth.user?.name ?? 'Vos', userXp);
+    final leaderboardAsync = ref.watch(leaderboardProvider(userName));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -39,13 +41,15 @@ class HomeScreen extends ConsumerWidget {
           await ref.read(authProvider.notifier).refreshUser();
           ref.invalidate(tracksProvider);
           await ref.read(progressNotifierProvider.notifier).reload();
+          ref.invalidate(weeklyProgressProvider);
+          ref.invalidate(leaderboardProvider(userName));
         },
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             UserHeaderCard(auth: auth, totalXp: userXp),
             const SizedBox(height: 20),
-            WeeklyChart(progress: progress),
+            const WeeklyChart(),
             const SizedBox(height: 20),
             const Text(
               'Acceso rápido',
@@ -80,23 +84,22 @@ class HomeScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 20),
-            LeaderboardSection(
-              entries: leaderboard,
-              currentUserXp: userXp,
+            leaderboardAsync.when(
+              data: (data) => LeaderboardSection(
+                entries: data.topUsers,
+                currentUserXp: userXp,
+              ),
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+              error: (_, __) => const SizedBox.shrink(),
             ),
           ],
         ),
       ),
     );
-  }
-
-  List<LeaderboardEntry> _buildLeaderboard(String userName, int userXp) {
-    return [
-      const LeaderboardEntry(rank: 1, name: 'Axel', xp: 2840),
-      const LeaderboardEntry(rank: 2, name: 'Martina', xp: 2100),
-      const LeaderboardEntry(rank: 3, name: 'Tomás', xp: 1950),
-      LeaderboardEntry(rank: 4, name: userName, xp: userXp, isCurrentUser: true),
-      const LeaderboardEntry(rank: 5, name: 'Camila', xp: 1200),
-    ];
   }
 }

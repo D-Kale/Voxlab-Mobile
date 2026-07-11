@@ -52,6 +52,11 @@ class ProgressService {
     return response.data['data'] as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> getWeeklyProgress() async {
+    final response = await _dio.get('/progress/weekly');
+    return response.data['data'] as Map<String, dynamic>;
+  }
+
   Progress _mapProgress(Map<String, dynamic> json) {
     final lessonId = json['lesson_id'] as int;
     final xpEarned = json['xp_earned'] as int?;

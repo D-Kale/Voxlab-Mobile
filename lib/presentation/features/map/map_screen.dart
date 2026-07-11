@@ -17,10 +17,14 @@ class MapScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(loadXpFromStorageProvider);
     ref.watch(progressNotifierProvider);
     final tracksAsync = ref.watch(tracksProvider);
-    final completedExerciseIds = ref.watch(completedExerciseIdsProvider);
+    final progressList = ref.watch(progressNotifierProvider);
+
+    final completedExerciseIds = progressList
+        .where((p) => p.status.isCompleted)
+        .expand((p) => p.completedExercises.map((e) => e.exerciseId))
+        .toSet();
 
     return Scaffold(
       backgroundColor: AppColors.background,
