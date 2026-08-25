@@ -24,14 +24,6 @@ class SecureStorage {
     return token != null && token.isNotEmpty;
   }
 
-  Future<void> saveGuestId(String id) async {
-    await _storage.write(key: AppConstants.secureStorageKeyGuestId, value: id);
-  }
-
-  Future<String?> getGuestId() async {
-    return _storage.read(key: AppConstants.secureStorageKeyGuestId);
-  }
-
   Future<void> writeString(String key, String value) async {
     await _storage.write(key: key, value: value);
   }

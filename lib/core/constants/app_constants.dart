@@ -3,13 +3,11 @@ class AppConstants {
 
   static const String apiBaseUrl = 'https://tvoxlab.tech/api/v1';
 
-  static const int authWallLessonLimit = 2;
   static const int defaultPageSize = 20;
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);
 
   static const String secureStorageKeyToken = 'voxlab_token';
-  static const String secureStorageKeyGuestId = 'voxlab_guest_id';
   static const String secureStorageKeyLocalProgress = 'voxlab_local_progress';
 
   static const String appName = 'Voxlab';

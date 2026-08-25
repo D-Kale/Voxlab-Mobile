@@ -10,9 +10,7 @@ class AuthWallScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) context.go(AppRoutes.map);
-      },
+      onPopInvokedWithResult: (didPop, _) {},
       child: Semantics(
         label: 'Iniciar sesión o crear cuenta para guardar tu progreso',
         child: Scaffold(

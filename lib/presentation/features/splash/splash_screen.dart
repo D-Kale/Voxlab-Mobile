@@ -37,7 +37,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     }
 
     if (!mounted) return;
-    context.go(AppRoutes.map);
+
+    final auth = ref.read(authProvider);
+    context.go(auth.isAuthenticated ? AppRoutes.map : AppRoutes.authWall);
   }
 
   @override

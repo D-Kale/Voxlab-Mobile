@@ -54,11 +54,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: AppRoutes.splash,
     redirect: (context, state) {
       final authState = ref.read(authProvider);
-      return AuthGuard.check(
-        state.matchedLocation,
-        authState,
-        0,
-      );
+      return AuthGuard.check(state.matchedLocation, authState);
     },
     routes: [
       GoRoute(

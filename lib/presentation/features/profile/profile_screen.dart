@@ -8,7 +8,6 @@ import '../../shared/providers/auth_provider.dart';
 import '../../shared/providers/content_provider.dart';
 import '../../shared/providers/progress_provider.dart';
 import 'widgets/completed_exercises_card.dart';
-import 'widgets/guest_profile_card.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/stats_section.dart';
 import 'widgets/xp_section.dart';
@@ -53,17 +52,22 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 20),
               CompletedExercisesCard(progress: progress),
             ] else ...[
-              const GuestProfileCard(),
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
             ],
             const SizedBox(height: 24),
             if (auth.isAuthenticated)
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: () async {
-                    await ref.read(authProvider.notifier).logout();
-                    if (context.mounted) context.go(AppRoutes.map);
-                  },
+                onPressed: () async {
+                  await ref.read(authProvider.notifier).logout();
+                  if (context.mounted) context.go(AppRoutes.authWall);
+                },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.error,
                     side: const BorderSide(color: AppColors.error),
