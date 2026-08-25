@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/network/api_exceptions.dart';
 import '../../../core/router/routes.dart';
 import '../../../domain/models/exercise.dart';
+import '../../../domain/models/exercise_outcome.dart';
 import '../../../domain/models/lesson_status.dart';
 import '../../shared/providers/content_provider.dart';
 import '../../shared/providers/progress_provider.dart';
@@ -174,7 +175,8 @@ class _ExerciseBody extends ConsumerWidget {
         Expanded(
           child: ExerciseWidgetFactory(
             exercise: exercise,
-            onCompleted: (score) => _onExerciseCompleted(context, ref, score),
+            onCompleted: (outcome) =>
+                _onExerciseCompleted(context, ref, outcome),
           ),
         ),
       ],
@@ -184,11 +186,11 @@ class _ExerciseBody extends ConsumerWidget {
   Future<void> _onExerciseCompleted(
     BuildContext context,
     WidgetRef ref,
-    int score,
+    ExerciseOutcome outcome,
   ) async {
     final completedIds = ref.read(completedExerciseIdsProvider);
     final isAlreadyCompleted = completedIds.contains(exercise.id);
-    final effectiveScore = isAlreadyCompleted ? 0 : score;
+    final effectiveScore = isAlreadyCompleted ? 0 : outcome.score;
 
     await ref.read(progressNotifierProvider.notifier).saveProgress(
           exerciseId: exercise.id,
@@ -198,15 +200,13 @@ class _ExerciseBody extends ConsumerWidget {
           exerciseType: exercise.type,
         );
 
-    final newXp = ref.read(totalXpStateProvider);
-
     if (!context.mounted) return;
     context.go(AppRoutes.exerciseComplete, extra: {
       'score': effectiveScore,
       'type': exercise.type,
       'name': exercise.name,
       'isReview': isAlreadyCompleted,
-      'accumulatedXp': newXp,
+      'sessionResult': outcome.sessionResult,
     });
   }
 }

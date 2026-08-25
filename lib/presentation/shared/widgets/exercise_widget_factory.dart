@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../domain/models/exercise.dart';
 import '../../../domain/models/exercise_content.dart';
+import '../../../domain/models/exercise_outcome.dart';
 import '../../features/exercise/oratory/oratory_screen.dart';
 import '../../features/exercise/quiz/quiz_screen.dart';
 import '../../features/exercise/reading/reading_screen.dart';
@@ -15,7 +16,7 @@ class ExerciseWidgetFactory extends StatelessWidget {
   });
 
   final Exercise exercise;
-  final void Function(int score)? onCompleted;
+  final void Function(ExerciseOutcome outcome)? onCompleted;
 
   @override
   Widget build(BuildContext context) {

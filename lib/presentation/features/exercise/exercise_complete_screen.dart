@@ -35,8 +35,8 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
     final type = (extra?['type'] as String?) ?? '';
     final name = (extra?['name'] as String?) ?? '';
     final isReview = (extra?['isReview'] as bool?) ?? false;
-
-    final result = SessionResultBuilder.fromScore(score);
+    final aiResult = extra?['sessionResult'] as SessionResult?;
+    final result = aiResult ?? SessionResultBuilder.fromScore(score);
     final theme = Theme.of(context);
 
     return PopScope(
@@ -105,6 +105,30 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
                 ],
               ),
             ],
+            if (result.readabilityLabel != null ||
+                result.fillerWords != null) ...[
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (result.readabilityLabel != null)
+                    PillBadge(
+                      icon: Icons.menu_book_outlined,
+                      label: result.readabilityLabel!,
+                      style: PillBadgeStyle.xp,
+                    ),
+                  if (result.readabilityLabel != null &&
+                      result.fillerWords != null)
+                    const SizedBox(width: 8),
+                  if (result.fillerWords != null)
+                    PillBadge(
+                      icon: Icons.graphic_eq,
+                      label: '${result.fillerWords} muletillas',
+                      style: PillBadgeStyle.streak,
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: 24),
             Center(
               child: ScoreRing(
@@ -139,8 +163,8 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 14),
                 child: SkillBar(
-                  icon: _skillIcon(skill.name),
-                  label: skill.name,
+                  icon: skill.icon,
+                  label: skill.label,
                   percent: skill.percent,
                 ),
               ),
@@ -178,15 +202,5 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
         ),
       ),
     );
-  }
-
-  IconData _skillIcon(String skill) {
-    return switch (skill) {
-      'Dicción' => Icons.record_voice_over_outlined,
-      'Postura' => Icons.accessibility_new_outlined,
-      'Confianza' => Icons.psychology_outlined,
-      'Contacto Visual' => Icons.visibility_outlined,
-      _ => Icons.star_outline,
-    };
   }
 }

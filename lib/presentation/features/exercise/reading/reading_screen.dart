@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../domain/models/exercise_outcome.dart';
 
 class ReadingWidget extends StatefulWidget {
   const ReadingWidget({
@@ -16,7 +17,7 @@ class ReadingWidget extends StatefulWidget {
   final String content;
   final int readingTimeSeconds;
   final int points;
-  final void Function(int score)? onCompleted;
+  final void Function(ExerciseOutcome outcome)? onCompleted;
 
   @override
   State<ReadingWidget> createState() => _ReadingWidgetState();
@@ -74,7 +75,7 @@ class _ReadingWidgetState extends State<ReadingWidget> {
   }
 
   void _continueToSummary() {
-    widget.onCompleted?.call(widget.points);
+    widget.onCompleted?.call(ExerciseOutcome(score: widget.points));
   }
 
   @override

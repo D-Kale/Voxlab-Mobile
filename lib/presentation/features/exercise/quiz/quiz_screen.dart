@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../domain/models/exercise_outcome.dart';
 import '../../../../domain/models/exercise_content.dart';
 
 class QuizWidget extends StatefulWidget {
@@ -13,7 +14,7 @@ class QuizWidget extends StatefulWidget {
 
   final List<QuizQuestion> questions;
   final int pointsPerQuestion;
-  final void Function(int score)? onCompleted;
+  final void Function(ExerciseOutcome outcome)? onCompleted;
 
   @override
   State<QuizWidget> createState() => _QuizWidgetState();
@@ -58,7 +59,9 @@ class _QuizWidgetState extends State<QuizWidget> {
       });
       return;
     }
-    widget.onCompleted?.call(_correctCount * widget.pointsPerQuestion);
+    widget.onCompleted?.call(
+          ExerciseOutcome(score: _correctCount * widget.pointsPerQuestion),
+      );
   }
 
   @override

@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_colors.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class WritingWidget extends StatefulWidget {
+import '../../../../core/constants/app_colors.dart';
+import '../../../../data/remote/services/analyzer_service.dart';
+import '../../../../domain/models/exercise_outcome.dart';
+import '../../../../domain/models/session_result.dart';
+
+class WritingWidget extends ConsumerStatefulWidget {
   const WritingWidget({
     super.key,
     required this.prompt,
@@ -17,16 +22,17 @@ class WritingWidget extends StatefulWidget {
   final int maxWords;
   final List<String> requirements;
   final int points;
-  final void Function(int score)? onCompleted;
+  final void Function(ExerciseOutcome outcome)? onCompleted;
 
   @override
-  State<WritingWidget> createState() => _WritingWidgetState();
+  ConsumerState<WritingWidget> createState() => _WritingWidgetState();
 }
 
-class _WritingWidgetState extends State<WritingWidget> {
+class _WritingWidgetState extends ConsumerState<WritingWidget> {
   final _controller = TextEditingController();
   int _wordCount = 0;
-  bool _isSubmitted = false;
+  bool _isAnalyzing = false;
+  String? _errorText;
 
   @override
   void initState() {
@@ -45,10 +51,32 @@ class _WritingWidgetState extends State<WritingWidget> {
   bool get _canSubmit =>
       _wordCount >= widget.minWords && _wordCount <= widget.maxWords;
 
-  void _submit() {
-    if (!_canSubmit) return;
-    setState(() => _isSubmitted = true);
-    widget.onCompleted?.call(widget.points);
+  Future<void> _submit() async {
+    if (!_canSubmit || _isAnalyzing) return;
+    setState(() {
+      _isAnalyzing = true;
+      _errorText = null;
+    });
+
+    try {
+      final response = await ref.read(analyzerServiceProvider).analyzeText(
+            text: _controller.text.trim(),
+            requirements: widget.requirements,
+            minWords: widget.minWords,
+            maxWords: widget.maxWords,
+          );
+      final outcome = ExerciseOutcome(
+        score: (response['data']?['score'] as num?)?.toInt() ??
+            widget.points,
+        sessionResult: SessionResult.fromJson(response),
+      );
+      widget.onCompleted?.call(outcome);
+    } catch (_) {
+      // Analyzer unreachable: degrade gracefully to the heuristic score
+      // so the session never blocks. TODO(ux): offer a retry instead of
+      // silently falling back when the backend is back online.
+      widget.onCompleted?.call(ExerciseOutcome(score: widget.points));
+    }
   }
 
   @override
@@ -61,9 +89,7 @@ class _WritingWidgetState extends State<WritingWidget> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    if (_isSubmitted) {
-      return _buildSummary(theme);
-    }
+    if (_isAnalyzing) return _buildAnalyzing(theme);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -74,7 +100,11 @@ class _WritingWidgetState extends State<WritingWidget> {
             label: 'Recompensa: ${widget.points} puntos de experiencia',
             child: Row(
               children: [
-                const Icon(Icons.auto_awesome, size: 18, color: AppColors.secondary),
+                const Icon(
+                  Icons.auto_awesome,
+                  size: 18,
+                  color: AppColors.secondary,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   '+${widget.points} XP',
@@ -104,7 +134,10 @@ class _WritingWidgetState extends State<WritingWidget> {
               runSpacing: 8,
               children: widget.requirements.map(
                 (r) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -137,7 +170,10 @@ class _WritingWidgetState extends State<WritingWidget> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 1.5,
+                ),
               ),
             ),
             style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
@@ -171,6 +207,15 @@ class _WritingWidgetState extends State<WritingWidget> {
                 ),
             ],
           ),
+          if (_errorText != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _errorText!,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.error,
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
@@ -184,7 +229,7 @@ class _WritingWidgetState extends State<WritingWidget> {
     );
   }
 
-  Widget _buildSummary(ThemeData theme) {
+  Widget _buildAnalyzing(ThemeData theme) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -197,41 +242,29 @@ class _WritingWidgetState extends State<WritingWidget> {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Icon(
-                  Icons.edit_note,
+                  Icons.auto_awesome,
                   size: 40,
-                  color: AppColors.success,
+                  color: AppColors.primary,
                 ),
               ),
             ),
             const SizedBox(height: 24),
             Text(
-              '¡Texto enviado!',
+              'Analizando tu texto con IA...',
               style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: 12),
             Text(
-              '${_wordCount} palabras · +${widget.points} XP',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: AppColors.onSurfaceVariant,
-              ),
+              'Estamos evaluando estructura, claridad y requisitos.',
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => widget.onCompleted?.call(widget.points),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.success,
-                  foregroundColor: AppColors.onSurface,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text('Continuar'),
-              ),
-            ),
+            const CircularProgressIndicator(),
           ],
         ),
       ),

@@ -11,6 +11,10 @@ class LocalProgressStore {
 
   final SecureStorage _storage;
 
+  // TODO(backend): POST /progress/sync exists (bulk sync on first login,
+  // only for accounts with zero XP) if product ever wants to migrate
+  // local progression to the server after registration.
+
   Future<List<Progress>> load() async {
     final raw = await _storage
         .readString(AppConstants.secureStorageKeyLocalProgress);

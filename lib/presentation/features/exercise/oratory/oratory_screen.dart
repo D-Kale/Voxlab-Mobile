@@ -1,7 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../domain/models/exercise_outcome.dart';
 
+/// Oratory exercise with an in-app timer and self-reported completion.
+///
+/// TODO(backend): there is no AI analysis endpoint for oratory/audio yet
+/// (only POST /exercises/analyze-text for writing). When it exists, send
+/// the recording transcript through the analyzer and complete with the
+/// AI-scored ExerciseOutcome instead of the heuristic points.
 class OratoryWidget extends StatefulWidget {
   const OratoryWidget({
     super.key,
@@ -20,7 +27,7 @@ class OratoryWidget extends StatefulWidget {
   final int minDurationSeconds;
   final List<String> requirements;
   final int points;
-  final void Function(int score)? onCompleted;
+  final void Function(ExerciseOutcome outcome)? onCompleted;
 
   @override
   State<OratoryWidget> createState() => _OratoryWidgetState();
@@ -56,7 +63,7 @@ class _OratoryWidgetState extends State<OratoryWidget> {
   void _finish() {
     _timer?.cancel();
     setState(() => _isFinished = true);
-    widget.onCompleted?.call(widget.points);
+    widget.onCompleted?.call(ExerciseOutcome(score: widget.points));
   }
 
   double get _progress =>
@@ -341,7 +348,9 @@ class _OratoryWidgetState extends State<OratoryWidget> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => widget.onCompleted?.call(widget.points),
+                onPressed: () => widget.onCompleted?.call(
+                    ExerciseOutcome(score: widget.points),
+                  ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.success,
                   foregroundColor: AppColors.onSurface,
