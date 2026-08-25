@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 import '../domain/models/track.dart';
 
 Map<String, String> buildExerciseNameMap(List<Track> tracks) {
@@ -34,4 +36,16 @@ String resolveExerciseName(
   Map<String, String> nameMap,
 ) {
   return nameMap[exerciseId] ?? formatExerciseType(exerciseType);
+}
+
+IconData exerciseTypeIcon(String type) {
+  return switch (type) {
+    'reading' => Icons.menu_book_outlined,
+    'quiz' => Icons.quiz_outlined,
+    'writing' => Icons.edit_note_outlined,
+    'oratory_minigame' => Icons.record_voice_over_outlined,
+    'audio' => Icons.headphones_outlined,
+    'video' => Icons.movie_outlined,
+    _ => Icons.extension_outlined,
+  };
 }
