@@ -18,11 +18,12 @@ final apiClientProvider = Provider<Dio>((ref) {
 
   dio.interceptors.addAll([
     AuthInterceptor(ref: ref),
-    LogInterceptor(
-      requestBody: true,
-      responseBody: true,
-      logPrint: (o) => debugPrint(o.toString()),
-    ),
+    if (kDebugMode)
+      LogInterceptor(
+        requestBody: false,
+        responseBody: true,
+        logPrint: (o) => debugPrint(o.toString()),
+      ),
   ]);
 
   return dio;
