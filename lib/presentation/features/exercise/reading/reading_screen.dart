@@ -79,6 +79,7 @@ class _ReadingWidgetState extends State<ReadingWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final remaining = widget.readingTimeSeconds - _elapsedSeconds;
     final minutes = remaining ~/ 60;
     final seconds = remaining % 60;
@@ -99,9 +100,7 @@ class _ReadingWidgetState extends State<ReadingWidget> {
                 label: 'Tiempo restante: $minutes minutos con $seconds segundos',
                 child: Text(
                   '$minutes:${seconds.toString().padLeft(2, '0')}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                  style: theme.textTheme.titleMedium?.copyWith(
                     color: AppColors.primary,
                   ),
                 ),
@@ -111,9 +110,7 @@ class _ReadingWidgetState extends State<ReadingWidget> {
                 label: 'Recompensa: ${widget.points} puntos de experiencia',
                 child: Text(
                   '+${widget.points} XP',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                  style: theme.textTheme.titleSmall?.copyWith(
                     color: AppColors.secondary,
                   ),
                 ),
@@ -133,12 +130,7 @@ class _ReadingWidgetState extends State<ReadingWidget> {
           const SizedBox(height: 24),
           Text(
             widget.title,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: AppColors.onSurface,
-              height: 1.3,
-            ),
+            style: theme.textTheme.titleLarge?.copyWith(height: 1.3),
           ),
           const SizedBox(height: 16),
           Expanded(
@@ -146,11 +138,7 @@ class _ReadingWidgetState extends State<ReadingWidget> {
               controller: _scrollController,
               child: Text(
                 widget.content,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: AppColors.onSurface,
-                  height: 1.6,
-                ),
+                style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
               ),
             ),
           ),

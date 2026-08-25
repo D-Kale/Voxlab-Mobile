@@ -1,191 +1,192 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
-import '../../shared/providers/auth_provider.dart';
-import '../../shared/providers/content_provider.dart';
-import '../../shared/providers/progress_provider.dart';
+import '../../../domain/models/session_result.dart';
+import '../../shared/widgets/insight_card.dart';
+import '../../shared/widgets/pill_badge.dart';
+import '../../shared/widgets/score_ring.dart';
+import '../../shared/widgets/section_header.dart';
+import '../../shared/widgets/skill_bar.dart';
+import '../../../utils/exercise_name_utils.dart';
 
-class ExerciseCompleteScreen extends ConsumerWidget {
+class ExerciseCompleteScreen extends StatefulWidget {
   const ExerciseCompleteScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  State<ExerciseCompleteScreen> createState() =>
+      _ExerciseCompleteScreenState();
+}
+
+class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
+  bool _isNavigating = false;
+
+  void goBack() {
+    if (_isNavigating) return;
+    _isNavigating = true;
+    if (mounted) context.go(AppRoutes.map);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final extra = GoRouterState.of(context).extra as Map<String, dynamic>?;
     final score = (extra?['score'] as int?) ?? 0;
     final type = (extra?['type'] as String?) ?? '';
     final name = (extra?['name'] as String?) ?? '';
     final isReview = (extra?['isReview'] as bool?) ?? false;
-    final accumulatedXp = (extra?['accumulatedXp'] as int?) ?? score;
-    final isQuiz = type == 'quiz';
 
-    Future<void> refreshAndGo() async {
-      await ref.read(authProvider.notifier).refreshUser();
-      ref.invalidate(tracksProvider);
-      await ref.read(progressNotifierProvider.notifier).reload();
-      if (context.mounted) context.go(AppRoutes.map);
-    }
+    final result = SessionResultBuilder.fromScore(score);
+    final theme = Theme.of(context);
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) refreshAndGo();
+        if (!didPop) goBack();
       },
       child: Scaffold(
-        backgroundColor: AppColors.background,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
+        appBar: AppBar(
+          title: Text(
+            isReview ? 'Repaso completado' : 'Resultados de la Sesión',
+          ),
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            Column(
               children: [
-                const Spacer(),
                 Semantics(
                   excludeSemantics: true,
                   child: Container(
-                    width: 96,
-                    height: 96,
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(24),
+                    width: 72,
+                    height: 72,
+                    decoration: const BoxDecoration(
+                      color: AppColors.secondaryContainer,
+                      shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      isQuiz ? Icons.emoji_events : Icons.menu_book,
-                      size: 48,
+                    child: const Icon(
+                      Icons.emoji_events_outlined,
+                      size: 40,
                       color: AppColors.success,
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  isReview
-                      ? '\u00a1Repaso completado!'
-                      : (isQuiz ? '\u00a1Quiz completado!' : '\u00a1Lectura completada!'),
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.onSurface,
-                  ),
-                ),
-                if (isReview)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      'Ya hab\u00edas hecho este ejercicio. No se sumaron puntos extra.',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                if (!isReview && name.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 32),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _XpCard(
-                        label: 'Ganados',
-                        xp: isReview ? 0 : score,
-                        color: AppColors.secondary,
-                        icon: Icons.star,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _XpCard(
-                        label: 'Acumulados',
-                        xp: accumulatedXp,
-                        color: AppColors.primary,
-                        icon: Icons.auto_awesome,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 48),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => refreshAndGo(),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: const Text('Seguir aprendiendo'),
-                  ),
-                ),
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed: () => refreshAndGo(),
-                    child: const Text('Volver al mapa'),
-                  ),
+                Text(
+                  '¡Gran esfuerzo!',
+                  style: theme.textTheme.titleLarge,
                 ),
-                const Spacer(),
+                const SizedBox(height: 4),
+                Text(
+                  'Acá tenés el desglose de tu presentación.',
+                  style: theme.textTheme.bodyMedium,
+                ),
               ],
             ),
-          ),
+            if (name.isNotEmpty || score > 0) ...[
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (score > 0) ...[
+                    PillBadge(
+                      icon: Icons.auto_awesome,
+                      label: '+$score XP',
+                      style: PillBadgeStyle.xp,
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  if (name.isNotEmpty)
+                    PillBadge(
+                      icon: exerciseTypeIcon(type),
+                      label: formatExerciseType(type),
+                      style: PillBadgeStyle.streak,
+                    ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 24),
+            Center(
+              child: ScoreRing(
+                score: result.overall,
+                size: 190,
+                centerLabel: 'DE 100',
+              ),
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.secondaryContainer,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'Nivel: ${result.level}',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: AppColors.onSecondaryContainer,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+            SectionHeader(title: 'Desglose de Habilidades'),
+            const SizedBox(height: 12),
+            for (final skill in result.skills)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: SkillBar(
+                  icon: _skillIcon(skill.name),
+                  label: skill.name,
+                  percent: skill.percent,
+                ),
+              ),
+            const SizedBox(height: 16),
+            InsightCard(
+              title: 'Consejos de la IA',
+              items: [
+                for (final tip in result.tips)
+                  InsightItem(
+                    icon: tip.isPositive
+                        ? Icons.check_circle
+                        : Icons.arrow_upward,
+                    text: tip.text,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: goBack,
+                child: const Text('Continuar'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: goBack,
+                child: const Text('Volver al mapa'),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
         ),
       ),
     );
   }
-}
 
-class _XpCard extends StatelessWidget {
-  const _XpCard({
-    required this.label,
-    required this.xp,
-    required this.color,
-    required this.icon,
-  });
-
-  final String label;
-  final int xp;
-  final Color color;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          Semantics(
-            excludeSemantics: true,
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: color.withValues(alpha: 0.8),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '+$xp XP',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
+  IconData _skillIcon(String skill) {
+    return switch (skill) {
+      'Dicción' => Icons.record_voice_over_outlined,
+      'Postura' => Icons.accessibility_new_outlined,
+      'Confianza' => Icons.psychology_outlined,
+      'Contacto Visual' => Icons.visibility_outlined,
+      _ => Icons.star_outline,
+    };
   }
 }

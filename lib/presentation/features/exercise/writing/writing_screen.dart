@@ -60,8 +60,9 @@ class _WritingWidgetState extends State<WritingWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     if (_isSubmitted) {
-      return _buildSummary();
+      return _buildSummary(theme);
     }
 
     return SingleChildScrollView(
@@ -77,9 +78,7 @@ class _WritingWidgetState extends State<WritingWidget> {
                 const SizedBox(width: 6),
                 Text(
                   '+${widget.points} XP',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                  style: theme.textTheme.titleSmall?.copyWith(
                     color: AppColors.secondary,
                   ),
                 ),
@@ -89,20 +88,13 @@ class _WritingWidgetState extends State<WritingWidget> {
           const SizedBox(height: 24),
           Text(
             widget.prompt,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: AppColors.onSurface,
-              height: 1.3,
-            ),
+            style: theme.textTheme.titleLarge?.copyWith(height: 1.3),
           ),
           const SizedBox(height: 16),
           if (widget.requirements.isNotEmpty) ...[
-            const Text(
+            Text(
               'Requisitos',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+              style: theme.textTheme.titleSmall?.copyWith(
                 color: AppColors.onSurfaceVariant,
               ),
             ),
@@ -119,8 +111,7 @@ class _WritingWidgetState extends State<WritingWidget> {
                   ),
                   child: Text(
                     r,
-                    style: const TextStyle(
-                      fontSize: 13,
+                    style: theme.textTheme.bodyMedium?.copyWith(
                       color: AppColors.primary,
                     ),
                   ),
@@ -135,7 +126,9 @@ class _WritingWidgetState extends State<WritingWidget> {
             minLines: 8,
             decoration: InputDecoration(
               hintText: 'Escribí tu texto aquí...',
-              hintStyle: const TextStyle(color: AppColors.onSurfaceVariant),
+              hintStyle: theme.textTheme.bodyLarge?.copyWith(
+                color: AppColors.onSurfaceVariant,
+              ),
               filled: true,
               fillColor: AppColors.surfaceContainer,
               border: OutlineInputBorder(
@@ -147,19 +140,14 @@ class _WritingWidgetState extends State<WritingWidget> {
                 borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
               ),
             ),
-            style: const TextStyle(
-              fontSize: 16,
-              color: AppColors.onSurface,
-              height: 1.5,
-            ),
+            style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               Text(
                 '$_wordCount / ${widget.maxWords} palabras',
-                style: TextStyle(
-                  fontSize: 13,
+                style: theme.textTheme.bodyMedium?.copyWith(
                   color: _wordCount > widget.maxWords
                       ? AppColors.error
                       : _wordCount >= widget.minWords
@@ -170,16 +158,14 @@ class _WritingWidgetState extends State<WritingWidget> {
               if (_wordCount > widget.maxWords)
                 Text(
                   ' (mín: ${widget.minWords})',
-                  style: const TextStyle(
-                    fontSize: 13,
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     color: AppColors.error,
                   ),
                 )
               else if (_wordCount < widget.minWords)
                 Text(
                   ' (mín: ${widget.minWords})',
-                  style: const TextStyle(
-                    fontSize: 13,
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     color: AppColors.onSurfaceVariant,
                   ),
                 ),
@@ -198,7 +184,7 @@ class _WritingWidgetState extends State<WritingWidget> {
     );
   }
 
-  Widget _buildSummary() {
+  Widget _buildSummary(ThemeData theme) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -222,19 +208,14 @@ class _WritingWidgetState extends State<WritingWidget> {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               '¡Texto enviado!',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.onSurface,
-              ),
+              style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: 12),
             Text(
               '${_wordCount} palabras · +${widget.points} XP',
-              style: const TextStyle(
-                fontSize: 18,
+              style: theme.textTheme.bodyLarge?.copyWith(
                 color: AppColors.onSurfaceVariant,
               ),
             ),

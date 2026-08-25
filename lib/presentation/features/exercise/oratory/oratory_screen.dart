@@ -64,18 +64,19 @@ class _OratoryWidgetState extends State<OratoryWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     if (_isFinished) {
-      return _buildSummary();
+      return _buildSummary(theme);
     }
 
     if (!_isStarted) {
-      return _buildPreparation();
+      return _buildPreparation(theme);
     }
 
-    return _buildActive();
+    return _buildActive(theme);
   }
 
-  Widget _buildPreparation() {
+  Widget _buildPreparation(ThemeData theme) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -89,9 +90,7 @@ class _OratoryWidgetState extends State<OratoryWidget> {
                 const SizedBox(width: 6),
                 Text(
                   '+${widget.points} XP',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                  style: theme.textTheme.titleSmall?.copyWith(
                     color: AppColors.secondary,
                   ),
                 ),
@@ -128,11 +127,7 @@ class _OratoryWidgetState extends State<OratoryWidget> {
                 Text(
                   widget.topic,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.onSurface,
-                  ),
+                  style: theme.textTheme.titleLarge,
                 ),
               ],
             ),
@@ -140,19 +135,16 @@ class _OratoryWidgetState extends State<OratoryWidget> {
           const SizedBox(height: 16),
           Text(
             widget.prompt,
-            style: const TextStyle(
-              fontSize: 16,
+            style: theme.textTheme.bodyLarge?.copyWith(
               color: AppColors.onSurfaceVariant,
               height: 1.4,
             ),
           ),
           if (widget.requirements.isNotEmpty) ...[
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'Objetivos',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+              style: theme.textTheme.titleSmall?.copyWith(
                 color: AppColors.onSurfaceVariant,
               ),
             ),
@@ -163,15 +155,16 @@ class _OratoryWidgetState extends State<OratoryWidget> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       '• ',
-                      style: TextStyle(color: AppColors.primary, fontSize: 16),
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: AppColors.primary,
+                      ),
                     ),
                     Expanded(
                       child: Text(
                         entry.value,
-                        style: const TextStyle(
-                          fontSize: 14,
+                        style: theme.textTheme.bodyMedium?.copyWith(
                           color: AppColors.onSurfaceVariant,
                         ),
                       ),
@@ -188,8 +181,7 @@ class _OratoryWidgetState extends State<OratoryWidget> {
               const SizedBox(width: 6),
               Text(
                 '${widget.durationSeconds}s · mínimo ${widget.minDurationSeconds}s',
-                style: const TextStyle(
-                  fontSize: 13,
+                style: theme.textTheme.bodyMedium?.copyWith(
                   color: AppColors.onSurfaceVariant,
                 ),
               ),
@@ -206,7 +198,7 @@ class _OratoryWidgetState extends State<OratoryWidget> {
                 label: const Text('Comenzar'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  textStyle: theme.textTheme.titleMedium,
                 ),
               ),
             ),
@@ -216,7 +208,7 @@ class _OratoryWidgetState extends State<OratoryWidget> {
     );
   }
 
-  Widget _buildActive() {
+  Widget _buildActive(ThemeData theme) {
     final minutes = _remainingSeconds ~/ 60;
     final seconds = _remainingSeconds % 60;
 
@@ -251,18 +243,16 @@ class _OratoryWidgetState extends State<OratoryWidget> {
                         children: [
                           Text(
                             '$minutes:${seconds.toString().padLeft(2, '0')}',
-                            style: TextStyle(
-                              fontSize: 48,
+                            style: theme.textTheme.displayMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: _progress < 0.25
                                   ? AppColors.error
                                   : AppColors.onSurface,
                             ),
                           ),
-                          const Text(
+                          Text(
                             'Hablando...',
-                            style: TextStyle(
-                              fontSize: 14,
+                            style: theme.textTheme.bodyMedium?.copyWith(
                               color: AppColors.onSurfaceVariant,
                             ),
                           ),
@@ -287,7 +277,7 @@ class _OratoryWidgetState extends State<OratoryWidget> {
                   backgroundColor: AppColors.error,
                   foregroundColor: AppColors.onSurface,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  textStyle: theme.textTheme.titleMedium,
                 ),
               ),
             ),
@@ -298,7 +288,7 @@ class _OratoryWidgetState extends State<OratoryWidget> {
     );
   }
 
-  Widget _buildSummary() {
+  Widget _buildSummary(ThemeData theme) {
     final elapsed = widget.durationSeconds - _remainingSeconds;
     final metMinimum = elapsed >= widget.minDurationSeconds;
 
@@ -326,19 +316,14 @@ class _OratoryWidgetState extends State<OratoryWidget> {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               '¡Ejercicio completado!',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.onSurface,
-              ),
+              style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: 12),
             Text(
               '${elapsed}s de duración · +${widget.points} XP',
-              style: const TextStyle(
-                fontSize: 18,
+              style: theme.textTheme.bodyLarge?.copyWith(
                 color: AppColors.onSurfaceVariant,
               ),
             ),
@@ -347,8 +332,7 @@ class _OratoryWidgetState extends State<OratoryWidget> {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   'Mínimo: ${widget.minDurationSeconds}s',
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     color: AppColors.error,
                   ),
                 ),
