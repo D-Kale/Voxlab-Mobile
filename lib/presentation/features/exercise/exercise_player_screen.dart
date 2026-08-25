@@ -5,11 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/network/api_exceptions.dart';
 import '../../../core/router/routes.dart';
-import '../../../data/remote/services/progress_service.dart';
 import '../../../domain/models/exercise.dart';
 import '../../../domain/models/lesson_status.dart';
-import '../../../core/storage/secure_storage.dart';
-import '../../shared/providers/auth_provider.dart';
 import '../../shared/providers/content_provider.dart';
 import '../../shared/providers/progress_provider.dart';
 import '../../shared/widgets/exercise_widget_factory.dart';
@@ -149,11 +146,7 @@ class _ExerciseBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final completedExerciseIds = ref.watch(completedExerciseIdsProvider);
-    final progress = ref.watch(progressNotifierProvider);
-    final isCompletedOnServer = lessonId != null && progress.any(
-      (p) => p.lessonId == lessonId && p.status.isCompleted,
-    );
-    final isAlreadyCompleted = completedExerciseIds.contains(exercise.id) || isCompletedOnServer;
+    final isAlreadyCompleted = completedExerciseIds.contains(exercise.id);
 
     return Column(
       children: [
@@ -181,9 +174,7 @@ class _ExerciseBody extends ConsumerWidget {
         Expanded(
           child: ExerciseWidgetFactory(
             exercise: exercise,
-            onCompleted: (score) {
-              _onExerciseCompleted(context, ref, score);
-            },
+            onCompleted: (score) => _onExerciseCompleted(context, ref, score),
           ),
         ),
       ],
@@ -195,75 +186,23 @@ class _ExerciseBody extends ConsumerWidget {
     WidgetRef ref,
     int score,
   ) async {
-    final authState = ref.read(authProvider);
-    final isAuthenticated = authState.isAuthenticated;
-
     final completedIds = ref.read(completedExerciseIdsProvider);
-    final progress = ref.read(progressNotifierProvider);
-    final isCompletedOnServer = lessonId != null && progress.any(
-      (p) => p.lessonId == lessonId && p.status.isCompleted,
-    );
-    final isAlreadyCompleted = completedIds.contains(exercise.id) || isCompletedOnServer;
+    final isAlreadyCompleted = completedIds.contains(exercise.id);
     final effectiveScore = isAlreadyCompleted ? 0 : score;
 
-    final currentXp = ref.read(totalXpStateProvider);
-    final newXp = currentXp + effectiveScore;
-    ref.read(totalXpStateProvider.notifier).state = newXp;
-
-    if (!isAlreadyCompleted) {
-      ref.read(completedExerciseIdsProvider.notifier).state = {
-        ...completedIds,
-        exercise.id,
-      };
-    }
-
-    if (isAuthenticated && lessonId != null) {
-      try {
-        await ref.read(progressServiceProvider).updateProgress(
-          lessonId!,
-          effectiveScore,
-          exercises: [
-            {'exercise_id': exercise.id, 'score': effectiveScore},
-          ],
-        );
-        await ref.read(authProvider.notifier).refreshUser();
-      } catch (e) {
-        debugPrint('ExercisePlayer save server progress error: $e');
-      }
-    } else {
-      ref.read(progressNotifierProvider.notifier).addProgress(
-        exerciseId: exercise.id,
-        status: LessonStatus.completed,
-        score: effectiveScore,
-      );
-
-      try {
-        final storage = ref.read(secureStorageProvider);
-        await storage.saveTotalXp(newXp);
-        if (!isAlreadyCompleted) {
-        await storage.saveCompletedExerciseIds(
-          ref.read(completedExerciseIdsProvider),
-        );
-        }
-      } catch (e) {
-        debugPrint('ExercisePlayer storage save error: $e');
-      }
-
-      try {
-        await ref.read(progressNotifierProvider.notifier).saveProgress(
+    await ref.read(progressNotifierProvider.notifier).saveProgress(
           exerciseId: exercise.id,
+          lessonId: lessonId,
           status: LessonStatus.completed,
           score: effectiveScore,
           exerciseType: exercise.type,
         );
-      } catch (e) {
-        debugPrint('ExercisePlayer saveProgress error: $e');
-      }
-    }
+
+    final newXp = ref.read(totalXpStateProvider);
 
     if (!context.mounted) return;
     context.go(AppRoutes.exerciseComplete, extra: {
-      'score': score,
+      'score': effectiveScore,
       'type': exercise.type,
       'name': exercise.name,
       'isReview': isAlreadyCompleted,

@@ -10,8 +10,7 @@ class AppConstants {
 
   static const String secureStorageKeyToken = 'voxlab_token';
   static const String secureStorageKeyGuestId = 'voxlab_guest_id';
-  static const String secureStorageKeyTotalXp = 'total_xp';
-  static const String secureStorageKeyCompletedIds = 'completed_ids';
+  static const String secureStorageKeyLocalProgress = 'voxlab_local_progress';
 
   static const String appName = 'Voxlab';
   static const String appTagline = 'Domina el arte de hablar en público';

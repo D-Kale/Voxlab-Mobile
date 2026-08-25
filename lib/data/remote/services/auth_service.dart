@@ -53,11 +53,6 @@ class AuthService {
     return _mapUser(data);
   }
 
-  Future<Map<String, dynamic>> getLeaderboard({int limit = 10}) async {
-    final response = await _dio.get('/leaderboard', queryParameters: {'limit': limit});
-    return response.data['data'] as Map<String, dynamic>;
-  }
-
   User _mapUser(Map<String, dynamic> json) {
     return User(
       id: json['id'] as String,

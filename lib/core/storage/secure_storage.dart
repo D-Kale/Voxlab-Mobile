@@ -32,23 +32,12 @@ class SecureStorage {
     return _storage.read(key: AppConstants.secureStorageKeyGuestId);
   }
 
-  Future<void> saveTotalXp(int xp) async {
-    await _storage.write(key: AppConstants.secureStorageKeyTotalXp, value: xp.toString());
+  Future<void> writeString(String key, String value) async {
+    await _storage.write(key: key, value: value);
   }
 
-  Future<int?> getTotalXp() async {
-    final value = await _storage.read(key: AppConstants.secureStorageKeyTotalXp);
-    return value != null ? int.tryParse(value) : null;
-  }
-
-  Future<void> saveCompletedExerciseIds(Set<String> ids) async {
-    await _storage.write(key: AppConstants.secureStorageKeyCompletedIds, value: ids.join(','));
-  }
-
-  Future<Set<String>> getCompletedExerciseIds() async {
-    final value = await _storage.read(key: AppConstants.secureStorageKeyCompletedIds);
-    if (value == null || value.isEmpty) return {};
-    return value.split(',').toSet();
+  Future<String?> readString(String key) async {
+    return _storage.read(key: key);
   }
 
   Future<void> clearAll() async {

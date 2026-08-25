@@ -3,9 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
-import '../../../domain/usecases/sync_progress.dart';
 import '../../shared/providers/auth_provider.dart';
-import '../../shared/providers/progress_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -21,7 +19,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
-  bool _isSyncing = false;
 
   @override
   void dispose() {
@@ -35,38 +32,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isSyncing = true);
+    try {
+      final error = await ref.read(authProvider.notifier).register(
+        _nameController.text.trim(),
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
 
-    final error = await ref.read(authProvider.notifier).register(
-      _nameController.text.trim(),
-      _emailController.text.trim(),
-      _passwordController.text,
-    );
-
-    if (error == null && mounted) {
-      try {
-        final result = await ref.read(syncProgressUseCaseProvider).call();
-        if (result != null) {
-          ref.read(authProvider.notifier).updateUser(result.user);
-          ref.read(progressNotifierProvider.notifier)
-              .replaceFromServer(result.progress);
-          final completedIds = result.progress
-              .where((p) => p.status.isCompleted)
-              .map((p) => p.exerciseId)
-              .toSet();
-          ref.read(completedExerciseIdsProvider.notifier).state = completedIds;
-          ref.read(totalXpStateProvider.notifier).state = result.user.xp;
+      if (error == null && mounted) {
+        if (mounted) {
+          context.go(AppRoutes.map);
         }
-      } catch (e) {
-        debugPrint('RegisterScreen sync error: $e');
       }
-
-      if (mounted) {
-        context.go(AppRoutes.home);
-      }
+    } catch (e) {
+      debugPrint('RegisterScreen unexpected error: $e');
     }
-
-    if (mounted) setState(() => _isSyncing = false);
   }
 
   @override
@@ -209,27 +189,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: authState.isLoading || _isSyncing
-                      ? null
-                      : _register,
-                  child:
-                      _isSyncing
-                          ? const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.onPrimary,
-                                ),
-                              ),
-                              SizedBox(width: 12),
-                              Text('Sincronizando progreso...'),
-                            ],
-                          )
-                          : const Text('Crear cuenta'),
+                  onPressed: authState.isLoading ? null : _register,
+                  child: const Text('Crear cuenta'),
                 ),
               ),
               const SizedBox(height: 16),

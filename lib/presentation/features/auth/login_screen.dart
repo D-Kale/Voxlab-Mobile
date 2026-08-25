@@ -3,9 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
-import '../../../domain/usecases/sync_progress.dart';
 import '../../shared/providers/auth_provider.dart';
-import '../../shared/providers/progress_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -19,7 +17,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
-  bool _isSyncing = false;
 
   @override
   void dispose() {
@@ -37,27 +34,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
 
     if (error == null && mounted) {
-      setState(() => _isSyncing = true);
-
-      try {
-        final result = await ref.read(syncProgressUseCaseProvider).call();
-        if (result != null) {
-          ref.read(authProvider.notifier).updateUser(result.user);
-          ref.read(progressNotifierProvider.notifier)
-              .replaceFromServer(result.progress);
-          final completedIds = result.progress
-              .where((p) => p.status.isCompleted)
-              .map((p) => p.exerciseId)
-              .toSet();
-          ref.read(completedExerciseIdsProvider.notifier).state = completedIds;
-          ref.read(totalXpStateProvider.notifier).state = result.user.xp;
-        }
-      } catch (e) {
-        debugPrint('LoginScreen sync error: $e');
-      }
-
       if (mounted) {
-        context.go(AppRoutes.home);
+        context.go(AppRoutes.map);
       }
     }
   }
@@ -182,25 +160,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: authState.isLoading || _isSyncing ? null : _login,
-                  child:
-                      _isSyncing
-                          ? const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.onPrimary,
-                                ),
-                              ),
-                              SizedBox(width: 12),
-                              Text('Sincronizando progreso...'),
-                            ],
-                          )
-                          : const Text('Iniciar sesión'),
+                  onPressed: authState.isLoading ? null : _login,
+                  child: const Text('Iniciar sesión'),
                 ),
               ),
               const SizedBox(height: 16),
