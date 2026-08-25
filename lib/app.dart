@@ -14,7 +14,7 @@ class VoxlabApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Voxlab',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
+      theme: AppTheme.light,
       routerConfig: router,
     );
   }
