@@ -4,15 +4,17 @@ import 'package:go_router/go_router.dart';
 import '../../presentation/features/auth/auth_wall_screen.dart';
 import '../../presentation/features/auth/login_screen.dart';
 import '../../presentation/features/auth/register_screen.dart';
-import '../../presentation/features/home/home_screen.dart';
-import '../../presentation/features/home/profile_screen.dart';
+import '../../presentation/features/analyze/analyze_screen.dart';
+import '../../presentation/features/profile/profile_screen.dart';
 import '../../presentation/features/lesson/lesson_list_screen.dart';
 import '../../presentation/features/map/map_screen.dart';
 import '../../presentation/features/module/module_detail_screen.dart';
+import '../../presentation/features/practice/practice_screen.dart';
 import '../../presentation/features/track/track_detail_screen.dart';
 import '../../presentation/features/splash/splash_screen.dart';
 import '../../presentation/features/exercise/exercise_player_screen.dart';
 import '../../presentation/features/exercise/exercise_complete_screen.dart';
+import '../../presentation/shared/providers/auth_provider.dart';
 import 'app_shell.dart';
 import 'auth_guard.dart';
 import 'routes.dart';
@@ -46,12 +48,17 @@ GoRoute _slideRoute({
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authGuard = AuthGuard(ref: ref);
+  ref.watch(authProvider.select((s) => s.status));
 
   return GoRouter(
     initialLocation: AppRoutes.splash,
     redirect: (context, state) {
-      return authGuard.call(state.matchedLocation);
+      final authState = ref.read(authProvider);
+      return AuthGuard.check(
+        state.matchedLocation,
+        authState,
+        0,
+      );
     },
     routes: [
       GoRoute(
@@ -66,14 +73,16 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const MapScreen(),
           ),
           GoRoute(
-            path: AppRoutes.home,
-            builder: (_, _) => const HomeScreen(),
-            routes: [
-              GoRoute(
-                path: 'profile',
-                builder: (_, _) => const ProfileScreen(),
-              ),
-            ],
+            path: AppRoutes.practice,
+            builder: (_, _) => const PracticeScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.analyze,
+            builder: (_, _) => const AnalyzeScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.profile,
+            builder: (_, _) => const ProfileScreen(),
           ),
         ],
       ),
