@@ -37,10 +37,11 @@ Layers, dependencies point inward:
 Non-obvious wiring:
 
 - All route paths in one place: `core/router/routes.dart`. Tabs: `/map` (Aprender), `/practice`, `/analyze`, `/profile` — all inside the `ShellRoute` with `app_shell.dart` bottom `NavigationBar`. There is no `/home` route anymore.
+- **Authentication is mandatory**: `AuthGuard.check` redirects every unauthenticated navigation to `/auth-wall` (no guest mode). Splash sends unauthenticated users to the wall; logout lands there too.
 - Progression is **local-only**: points/completed exercises persist through `data/local/local_progress_store.dart` (JSON blob in secure storage). There is no progress endpoint anymore — do not reintroduce server-side progress calls.
-- The router passes a hardcoded `0` as `completedCount` to `AuthGuard.check`, disabling the guest wall-at-2-completions gate without touching auth machinery. Revert that one line to re-enable it.
-- Exercise types (reading/quiz/writing/oratory) are dispatched by `presentation/shared/widgets/exercise_widget_factory.dart` — add new exercise types there. Type labels/icons helpers live in `utils/exercise_name_utils.dart`.
-- Session results screen consumes `domain/models/session_result.dart`. `SessionResultBuilder.fromScore` is the single integration point: swap its heuristic for the backend AI analysis when that endpoint exists — do not scatter fallback logic across UI.
+- Exercise types (reading/quiz/writing/oratory) are dispatched by `presentation/shared/widgets/exercise_widget_factory.dart` — add new exercise types there. Type labels/icons helpers live in `utils/exercise_name_utils.dart`. Exercises complete with an `ExerciseOutcome` (score + optional `SessionResult`).
+- Writing exercises call the backend AI (`POST /exercises/analyze-text`, see `data/remote/services/analyzer_service.dart`) and complete with the real AI score; on analyzer failure they degrade to the heuristic points. Quiz/reading/oratory have no AI endpoint yet (heuristic `SessionResultBuilder.fromScore`) — backend gaps are marked with `TODO(backend)` comments.
+- Session results screen consumes `domain/models/session_result.dart`. `SessionResult.fromJson` maps the analyzer envelope (`{success, data: {score, score_breakdown, feedback,...}}`); `SessionResultBuilder.fromScore` is the offline fallback — do not scatter fallback logic across UI.
 - Reusable design components live in `presentation/shared/widgets/` (`ScoreRing`, `SkillBar` + `scoreColor()`, `InsightCard`, `PillBadge`, `FeedbackBanner`). Prefer them over hand-rolling rings/bars/badges.
 
 ## Theme / design system
@@ -49,7 +50,7 @@ Single source: `core/constants/app_theme.dart` (`AppTheme.light`, `useMaterial3:
 
 ## Direction (decided by product owner)
 
-MVP: users pick and run exercises freely — map path is informative only (no locks, no gating). **Auth layer stays as-is** (backend `tvoxlab.tech` is unreachable from the current institutional network — don't rip it out, don't extend it). **All progression data (XP, completed exercises, weekly chart) is computed and persisted locally** via `data/local/local_progress_store.dart`. Leaderboard was removed entirely. Content, exercise scores and the (future) AI session analysis come from the backend; session results map through `SessionResultBuilder` (see above). Next focus: polish + wiring the real analysis endpoint.
+MVP: users pick and run exercises freely — map path is informative only (no locks, no gating). **Authentication is mandatory** (guest mode removed by product decision; the backend `tvoxlab.tech` is unreachable from the current institutional network, so auth flows can't be live-tested here). **All progression data (XP, completed exercises, weekly chart) is computed and persisted locally** via `data/local/local_progress_store.dart`. Content, exercise scores and the AI session analysis (writing only, via `POST /exercises/analyze-text`) come from the backend; results map through `SessionResult` (see above). Backend gaps carry `TODO(backend)` comments for whoever picks them up.
 
 ## Conventions
 
