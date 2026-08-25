@@ -48,7 +48,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = await _repository.getCurrentUser();
       state = AuthState(status: AuthStatus.authenticated, user: user);
     } catch (_) {
-      await _storage.clearAll();
+      await _storage.clearToken();
       state = state.copyWith(status: AuthStatus.guest);
     }
   }
