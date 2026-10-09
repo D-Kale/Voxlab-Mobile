@@ -5,65 +5,58 @@ import 'path_lesson_node.dart';
 
 class PathConnectorPainter extends CustomPainter {
   PathConnectorPainter({
-    required this.nodeKeys,
+    required this.nodePositions,
     required this.states,
-    required this.stackKey,
+    this.nodeRadius = 32.0,
   });
 
-  static const double _strokeWidth = 8;
-  static const double _dashLength = 9;
-  static const double _dashGap = 7;
-  static const double _edgePadding = 6;
+  static const double _strokeWidth = 8.0;
+  static const double _dashLength = 10.0;
+  static const double _dashGap = 8.0;
 
-  final List<GlobalKey> nodeKeys;
+  /// Upcoming segment color: white reads clearly on the orange app
+  /// background, where the previous beige was nearly invisible.
+  static const Color _upcomingColor = Color(0xFFFFFFFF);
+
+  /// Node centers produced by `MapGeometry.centers`: `dx` relative to the
+  /// horizontal center of the painted area, `dy` absolute from the top.
+  final List<Offset> nodePositions;
   final List<PathNodeState> states;
-  final GlobalKey stackKey;
-
-  ({Offset center, Size size})? _metricsOf(GlobalKey key) {
-    final box = key.currentContext?.findRenderObject() as RenderBox?;
-    final stack = stackKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null || stack == null || !box.hasSize || !stack.hasSize) {
-      return null;
-    }
-    final nodeTopLeft = box.localToGlobal(Offset.zero);
-    final stackTopLeft = stack.localToGlobal(Offset.zero);
-    return (
-      center: Offset(
-        nodeTopLeft.dx - stackTopLeft.dx + box.size.width / 2,
-        nodeTopLeft.dy - stackTopLeft.dy + box.size.height / 2,
-      ),
-      size: box.size,
-    );
-  }
+  final double nodeRadius;
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (var i = 1; i < nodeKeys.length; i++) {
-      final from = _metricsOf(nodeKeys[i - 1]);
-      final to = _metricsOf(nodeKeys[i]);
-      if (from == null || to == null) continue;
+    if (nodePositions.length < 2) return;
+    final cx = size.width / 2;
 
+    for (var i = 1; i < nodePositions.length; i++) {
       final start = Offset(
-        from.center.dx,
-        from.center.dy + from.size.height / 2 + _edgePadding,
+        cx + nodePositions[i - 1].dx,
+        nodePositions[i - 1].dy,
       );
-      final end = Offset(
-        to.center.dx,
-        to.center.dy - to.size.height / 2 - _edgePadding,
-      );
+      final end = Offset(cx + nodePositions[i].dx, nodePositions[i].dy);
 
+      // Connect node edge to node edge (bottom of previous → top of next).
+      final adjustedStart = Offset(start.dx, start.dy + nodeRadius);
+      final adjustedEnd = Offset(end.dx, end.dy - nodeRadius);
+      if (adjustedEnd.dy <= adjustedStart.dy) continue;
+
+      final dy = adjustedEnd.dy - adjustedStart.dy;
       final path = Path()
-        ..moveTo(start.dx, start.dy)
+        ..moveTo(adjustedStart.dx, adjustedStart.dy)
         ..cubicTo(
-          start.dx,
-          start.dy + (end.dy - start.dy) * 0.5,
-          end.dx,
-          end.dy - (end.dy - start.dy) * 0.5,
-          end.dx,
-          end.dy,
+          adjustedStart.dx,
+          adjustedStart.dy + dy * 0.5,
+          adjustedEnd.dx,
+          adjustedEnd.dy - dy * 0.5,
+          adjustedEnd.dx,
+          adjustedEnd.dy,
         );
 
-      if (states[i - 1] == PathNodeState.completed) {
+      final segmentState =
+          i - 1 < states.length ? states[i - 1] : PathNodeState.pending;
+
+      if (segmentState == PathNodeState.completed) {
         canvas.drawPath(path, _paintFor(AppColors.secondary));
       } else {
         _drawDashed(canvas, path);
@@ -78,7 +71,7 @@ class PathConnectorPainter extends CustomPainter {
     ..strokeCap = StrokeCap.round;
 
   void _drawDashed(Canvas canvas, Path path) {
-    final paint = _paintFor(const Color(0xFFD6D3CA));
+    final paint = _paintFor(_upcomingColor);
     for (final metric in path.computeMetrics()) {
       var distance = 0.0;
       while (distance < metric.length) {
@@ -93,7 +86,12 @@ class PathConnectorPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(PathConnectorPainter oldDelegate) {
+    if (oldDelegate.nodePositions.length != nodePositions.length) return true;
     if (oldDelegate.states.length != states.length) return true;
+    if (oldDelegate.nodeRadius != nodeRadius) return true;
+    for (var i = 0; i < nodePositions.length; i++) {
+      if (oldDelegate.nodePositions[i] != nodePositions[i]) return true;
+    }
     for (var i = 0; i < states.length; i++) {
       if (oldDelegate.states[i] != states[i]) return true;
     }

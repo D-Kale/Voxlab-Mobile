@@ -5,6 +5,8 @@ import '../constants/app_constants.dart';
 import 'api_exceptions.dart';
 import 'auth_interceptor.dart';
 
+export 'api_exceptions.dart';
+
 final apiClientProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
@@ -34,26 +36,43 @@ ApiException mapDioException(DioException e) {
     DioExceptionType.connectionTimeout ||
     DioExceptionType.receiveTimeout ||
     DioExceptionType.sendTimeout =>
-      NetworkException('Tiempo de espera agotado'),
+      NetworkException('Tiempo de espera agotado. Revisá tu conexión.'),
     DioExceptionType.connectionError =>
-      NetworkException('Sin conexión a internet'),
+      NetworkException('Sin conexión a internet.'),
     DioExceptionType.badResponse => _mapStatusCodeError(e),
-    _ => NetworkException('Error inesperado: ${e.message}'),
+    _ => NetworkException('Ocurrió un error inesperado.'),
   };
 }
 
 ApiException _mapStatusCodeError(DioException e) {
   final statusCode = e.response?.statusCode;
-  final message =
-      (e.response?.data is Map ? (e.response?.data as Map)['error'] : null)
-          as String?;
+  final data = e.response?.data;
+  final message = data is Map && data['error'] is String
+      ? data['error'] as String
+      : null;
+  debugPrint('API error $statusCode: $message');
 
   return switch (statusCode) {
     400 => ServerException(message ?? 'Solicitud inválida'),
     401 => UnauthorizedException(),
-    404 => NotFoundException(message ?? 'Recurso no encontrado'),
-    409 => ConflictException(message ?? 'El recurso ya existe'),
+    404 => NotFoundException('Recurso no encontrado'),
+    409 => ConflictException(
+        message == 'email already registered'
+            ? 'Ese email ya está registrado. Probá iniciar sesión.'
+            : 'Este recurso ya existe.',
+      ),
+    422 => ServerException('Revisá los datos ingresados'),
     502 || 503 => ServerException('Servicio temporalmente no disponible'),
-    _ => ServerException(message ?? 'Error interno del servidor'),
+    _ => ServerException('Error interno del servidor'),
   };
+}
+
+String friendlyErrorMessage(Object error) {
+  if (error is String) return error;
+  if (error is ApiException) return error.message;
+  if (error is DioException) return mapDioException(error).message;
+  if (error is FormatException) {
+    return 'No pudimos procesar la respuesta del servidor. Intentá de nuevo.';
+  }
+  return 'Ocurrió un error inesperado.';
 }

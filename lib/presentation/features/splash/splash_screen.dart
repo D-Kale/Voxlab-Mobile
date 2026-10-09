@@ -27,6 +27,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       await ref.read(authProvider.notifier).checkAuth();
     } catch (e) {
       debugPrint('SplashScreen checkAuth error: $e');
+      try {
+        ref.read(authProvider.notifier).clearError();
+      } catch (_) {}
     }
 
     if (!mounted) return;
@@ -55,16 +58,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               child: const Icon(
                 Icons.record_voice_over,
                 size: 80,
-                color: AppColors.primary,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 24),
             Text(
               'Voxlab',
               style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-              ),
+                    // The app background is AppColors.primary orange, so the
+                    // title must not use `primary` or it becomes invisible.
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -80,7 +85,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 height: 24,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: AppColors.primary,
+                  color: Colors.white,
                 ),
               ),
             ),

@@ -1,5 +1,5 @@
 name: voxlab
-description: Gamified public speaking learning app (Duolingo-style)
+description: Gamified public speaking learning app (VoxLab style)
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -40,6 +40,28 @@ dev_dependencies:
   build_runner: ^2.4.14
   freezed: ^2.5.7
   json_serializable: ^6.9.4
+  mockito: ^5.4.4
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/voxi_awake.png
+    - assets/images/voxi_sleeping.png
+    - assets/images/voxi_logo.png
+  fonts:
+    # Bundled so google_fonts finds them in the asset manifest instead of
+    # fetching at runtime (offline-first + deterministic golden tests).
+    - family: DMSans
+      fonts:
+        - asset: assets/fonts/DMSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/DMSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/DMSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/DMSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/DMSans-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/DMSans-Black.ttf
+          weight: 900

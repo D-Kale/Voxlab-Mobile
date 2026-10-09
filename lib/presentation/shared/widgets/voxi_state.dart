@@ -1,0 +1,1 @@
+enum VoxiState { awake, sleeping }

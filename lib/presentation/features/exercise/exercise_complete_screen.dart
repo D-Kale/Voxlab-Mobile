@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
@@ -9,6 +10,7 @@ import '../../shared/widgets/pill_badge.dart';
 import '../../shared/widgets/score_ring.dart';
 import '../../shared/widgets/section_header.dart';
 import '../../shared/widgets/skill_bar.dart';
+import '../../shared/widgets/voxi_state.dart';
 import '../../../utils/exercise_name_utils.dart';
 
 class ExerciseCompleteScreen extends StatefulWidget {
@@ -37,7 +39,6 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
     final isReview = (extra?['isReview'] as bool?) ?? false;
     final aiResult = extra?['sessionResult'] as SessionResult?;
     final result = aiResult ?? SessionResultBuilder.fromScore(score);
-    final theme = Theme.of(context);
 
     return PopScope(
       canPop: false,
@@ -45,41 +46,49 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
         if (!didPop) goBack();
       },
       child: Scaffold(
+        backgroundColor: AppColors.background,
         appBar: AppBar(
-          title: Text(
-            isReview ? 'Repaso completado' : 'Resultados de la Sesión',
+          title: Image.asset(
+            'assets/images/voxi_logo.png',
+            height: 28,
+            fit: BoxFit.contain,
           ),
+          backgroundColor: AppColors.background,
+          elevation: 0,
         ),
         body: ListView(
           padding: const EdgeInsets.all(24),
           children: [
+            // Header with Voxi celebration
             Column(
               children: [
-                Semantics(
-                  excludeSemantics: true,
-                  child: Container(
-                    width: 72,
-                    height: 72,
-                    decoration: const BoxDecoration(
-                      color: AppColors.secondaryContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.emoji_events_outlined,
-                      size: 40,
-                      color: AppColors.success,
-                    ),
-                  ),
+                Image.asset(
+                  'assets/images/voxi_awake.png',
+                  width: 100,
+                  height: 100,
+                  fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '¡Gran esfuerzo!',
-                  style: theme.textTheme.titleLarge,
+                  isReview ? '¡Repaso completado!' : '¡Gran esfuerzo!',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.darkBrown,
+                    height: 1.2,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   'Acá tenés el desglose de tu presentación.',
-                  style: theme.textTheme.bodyMedium,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.darkBrownLight,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
@@ -90,9 +99,10 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
                 children: [
                   if (score > 0) ...[
                     PillBadge(
-                      icon: Icons.auto_awesome,
+                      icon: Icons.auto_awesome_rounded,
                       label: '+$score XP',
                       style: PillBadgeStyle.xp,
+                      showVoxi: false,
                     ),
                     const SizedBox(width: 8),
                   ],
@@ -101,6 +111,7 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
                       icon: exerciseTypeIcon(type),
                       label: formatExerciseType(type),
                       style: PillBadgeStyle.streak,
+                      showVoxi: false,
                     ),
                 ],
               ),
@@ -113,18 +124,20 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
                 children: [
                   if (result.readabilityLabel != null)
                     PillBadge(
-                      icon: Icons.menu_book_outlined,
+                      icon: Icons.menu_book_rounded,
                       label: result.readabilityLabel!,
                       style: PillBadgeStyle.xp,
+                      showVoxi: false,
                     ),
                   if (result.readabilityLabel != null &&
                       result.fillerWords != null)
                     const SizedBox(width: 8),
                   if (result.fillerWords != null)
                     PillBadge(
-                      icon: Icons.graphic_eq,
+                      icon: Icons.graphic_eq_rounded,
                       label: '${result.fillerWords} muletillas',
                       style: PillBadgeStyle.streak,
+                      showVoxi: false,
                     ),
                 ],
               ),
@@ -133,31 +146,49 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
             Center(
               child: ScoreRing(
                 score: result.overall,
-                size: 190,
+                size: 200,
                 centerLabel: 'DE 100',
+                showVoxi: true,
+                voxiState: VoxiState.awake,
               ),
             ),
             const SizedBox(height: 16),
             Center(
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+                  horizontal: 20,
+                  vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.secondaryContainer,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: AppColors.accentRed, width: 3),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: AppColors.accentRed,
+                      offset: Offset(0, 4),
+                      blurRadius: 0,
+                      spreadRadius: 0,
+                    ),
+                  ],
                 ),
                 child: Text(
                   'Nivel: ${result.level}',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: AppColors.onSecondaryContainer,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.darkBrown,
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 32),
-            SectionHeader(title: 'Desglose de Habilidades'),
+            SectionHeader(
+              title: 'Desglose de Habilidades',
+              icon: Icons.insights_rounded,
+              showVoxi: true,
+              voxiState: VoxiState.awake,
+            ),
             const SizedBox(height: 12),
             for (final skill in result.skills)
               Padding(
@@ -175,11 +206,14 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
                 for (final tip in result.tips)
                   InsightItem(
                     icon: tip.isPositive
-                        ? Icons.check_circle
-                        : Icons.arrow_upward,
+                        ? Icons.check_circle_rounded
+                        : Icons.arrow_upward_rounded,
                     text: tip.text,
+                    highlight: tip.isPositive,
                   ),
               ],
+              showVoxi: true,
+              voxiState: VoxiState.awake,
             ),
             const SizedBox(height: 32),
             SizedBox(

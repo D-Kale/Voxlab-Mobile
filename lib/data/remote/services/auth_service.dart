@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../domain/models/user.dart';
@@ -16,8 +17,7 @@ class AuthService {
       'email': email,
       'password': password,
     });
-    final data = response.data as Map<String, dynamic>;
-    return (token: data['token'] as String, user: _mapUser(data['user']));
+    return _parseAuthResponse(response.data as Map<String, dynamic>);
   }
 
   Future<({String token, User user})> register(
@@ -30,8 +30,27 @@ class AuthService {
       'email': email,
       'password': password,
     });
-    final data = response.data as Map<String, dynamic>;
-    return (token: data['token'] as String, user: _mapUser(data['user']));
+    return _parseAuthResponse(response.data as Map<String, dynamic>);
+  }
+
+  ({String token, User user}) _parseAuthResponse(Map<String, dynamic> data) {
+    final Map<String, dynamic> body;
+    if (data['token'] is String && data['user'] is Map) {
+      body = data;
+    } else if (data['success'] == true && data['data'] is Map) {
+      body = data['data'] as Map<String, dynamic>;
+    } else {
+      debugPrint('Unexpected auth envelope: $data');
+      throw ServerException('No pudimos procesar la respuesta del servidor.');
+    }
+
+    final token = body['token'];
+    final userJson = body['user'];
+    if (token is! String || userJson is! Map<String, dynamic>) {
+      debugPrint('Incomplete auth payload: $data');
+      throw ServerException('No pudimos procesar la respuesta del servidor.');
+    }
+    return (token: token, user: _mapUser(userJson));
   }
 
   Future<void> logout() async {

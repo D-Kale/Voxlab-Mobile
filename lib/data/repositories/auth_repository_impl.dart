@@ -38,7 +38,7 @@ class AuthRepositoryImpl implements IAuthRepository {
     } catch (e) {
       debugPrint('AuthRepo logout error: $e');
     }
-    await secureStorage.clearAll();
+    await secureStorage.clearToken();
     _cachedUser = null;
   }
 

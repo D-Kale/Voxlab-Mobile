@@ -9,15 +9,17 @@ import '../../domain/models/progress.dart';
 class LocalProgressStore {
   LocalProgressStore(this._storage);
 
-  final SecureStorage _storage;
+  LocalProgressStore.test() : _storage = null;
 
-  // TODO(backend): POST /progress/sync exists (bulk sync on first login,
-  // only for accounts with zero XP) if product ever wants to migrate
-  // local progression to the server after registration.
+  final SecureStorage? _storage;
 
-  Future<List<Progress>> load() async {
-    final raw = await _storage
-        .readString(AppConstants.secureStorageKeyLocalProgress);
+  static String _keyForUser(String userId) =>
+      '${AppConstants.secureStorageKeyLocalProgress}_$userId';
+
+  Future<List<Progress>> load(String userId) async {
+    if (_storage == null) return [];
+    final key = _keyForUser(userId);
+    final raw = await _storage.readString(key);
     if (raw == null || raw.isEmpty) return [];
 
     try {
@@ -30,14 +32,19 @@ class LocalProgressStore {
     }
   }
 
-  Future<void> save(List<Progress> entries) async {
+  Future<void> save(String userId, List<Progress> entries) async {
+    if (_storage == null) return;
+    final key = _keyForUser(userId);
     final raw = jsonEncode(
       entries.map((e) => e.toJson()).toList(),
     );
-    await _storage.writeString(
-      AppConstants.secureStorageKeyLocalProgress,
-      raw,
-    );
+    await _storage.writeString(key, raw);
+  }
+
+  Future<void> clear(String userId) async {
+    if (_storage == null) return;
+    final key = _keyForUser(userId);
+    await _storage.delete(key);
   }
 }
 

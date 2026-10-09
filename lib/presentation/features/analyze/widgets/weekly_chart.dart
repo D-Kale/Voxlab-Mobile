@@ -12,35 +12,32 @@ class WeeklyChart extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final data = ref.watch(weeklyProgressProvider);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    // No Card wrapper: this chart already sits inside the branded white card
+    // of AnalyzeScreen, and a nested Card draws a second border around it.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                const Icon(
-                  Icons.bar_chart_rounded,
-                  size: 18,
-                  color: AppColors.onSurfaceVariant,
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Actividad semanal',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurface,
-                  ),
-                ),
-              ],
+            const Icon(
+              Icons.bar_chart_rounded,
+              size: 18,
+              color: AppColors.onSurfaceVariant,
             ),
-            const SizedBox(height: 20),
-            _ChartBars(daily: data.daily),
+            const SizedBox(width: 8),
+            const Text(
+              'Actividad semanal',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.onSurface,
+              ),
+            ),
           ],
         ),
-      ),
+        const SizedBox(height: 20),
+        _ChartBars(daily: data.daily),
+      ],
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
 import '../../shared/providers/auth_provider.dart';
@@ -40,12 +41,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
 
       if (error == null && mounted) {
-        if (mounted) {
-          context.go(AppRoutes.map);
-        }
+        context.go(AppRoutes.map);
       }
     } catch (e) {
       debugPrint('RegisterScreen unexpected error: $e');
+      ref.read(authProvider.notifier).showError(e);
     }
   }
 
@@ -140,7 +140,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Ingresá tu email';
-                  if (!v.contains('@')) return 'Email inválido';
+                  final parts = v.split('@');
+                  if (parts.length != 2 || !parts.last.contains('.')) {
+                    return 'Email inválido';
+                  }
                   return null;
                 },
               ),
@@ -190,7 +193,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: authState.isLoading ? null : _register,
-                  child: const Text('Crear cuenta'),
+                  child: Text(
+                    authState.isLoading ? 'Creando cuenta…' : 'Crear cuenta',
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

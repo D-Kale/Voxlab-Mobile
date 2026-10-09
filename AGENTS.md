@@ -15,10 +15,21 @@ flutter test            # single file: flutter test test/widget_test.dart
 
 After touching `lib/domain/models/*` (freezed/json_serializable): codegen -> analyze -> test, in that order.
 
+## Testing the tabs
+
+- `test/tabs_smoke_test.dart` renders **every tab** (mapa, práctica, analizar, perfil) with fixture providers at 390x844 and 320x700, asserting no layout exception and checking real content/logic (filtering, empty states, no raw type strings). Run it after touching any screen: it is what catches responsive overflows.
+- `test/golden/tab_screens_golden_test.dart` captures the full tab screens for design review; read the PNGs from `test/golden/goldens/` when changing shared styles.
+- Provider overrides needed for those tests: `tracksProvider` (fixtures), `progressNotifierProvider` (fake notifier with `List<Progress> build()`), `authProvider` (a real `AuthNotifier` built with fake repo/storage/api — its constructor requires non-null dependencies).
+- `test/fixtures/map_fixtures.dart` must build `ExerciseContent` matching the exercise `type`: screens derive filter chips and XP from the parsed content, not the raw string.
+
 ## Known state
 
-- `flutter test` passes (smoke test wraps `VoxlabApp` in `ProviderScope`).
+- `flutter test` passes (smoke test + auth widget tests).
 - `flutter analyze` reports ~70 info-level issues as baseline (strict lint set in `analysis_options.yaml`). Match the lints on new code; don't mass-reformat unrelated files.
+- **Mapa unificado** (Fase 3): `/track`, `/module`, `/lesson` routes eliminados; `TrackDetail`/`ModuleDetail`/`LessonList` pantallas borradas; tap en nodo de lección va directo al primer ejercicio pendiente; píldora UNIDAD es header sin navegación; scroll automático al nodo actual al cargar.
+- **Errores user-friendly** (Fase 1): ErrorView con mensajes totales en español, `main.dart` con fallback styled en release, `friendlyErrorMessage()` centralizado.
+- **Registro defensivo** (Fase 2): `_parseAuthResponse` tolerante + error amigable, catch visible en banner, validador de email estricto, tests de registro con fake repo (4 casos).
+- Para desarrollo local con Docker: `cd backend && docker compose up -d backend`, luego `flutter run --dart-define=API_BASE_URL=http://<ip-pc>:3000/api/v1` (o `adb reverse tcp:3000 tcp:3000` + `127.0.0.1`). `usesCleartextTraffic="true"` habilitado en AndroidManifest para http://.
 
 ## Codegen facts
 
@@ -46,7 +57,25 @@ Non-obvious wiring:
 
 ## Theme / design system
 
-Single source: `core/constants/app_theme.dart` (`AppTheme.light`, `useMaterial3: true`) + `core/constants/app_colors.dart`. Light cream palette (bg `#FAF7EF`, violet primary `#7C3AED`, green `#3ECF6E`, amber `#F59E0B`) matching approved Duolingo-style reference designs. Fonts: DM Sans via google_fonts. Always consume theme colors/components — no hardcoded hexes (the only sanctioned exceptions live inside map widgets: the 3D-edge greens).
+Single source: `core/constants/app_theme.dart` (`AppTheme.light`, `useMaterial3: true`) + `core/constants/app_colors.dart`. VoxLab warm palette: orange background `#F4A221`, intense red accent/borders `#D93B27`, dark brown text `#5C3A21`, success green `#3ECF6E`, white surfaces. Fonts: DM Sans via google_fonts, **bundled in `assets/fonts/`** (see Fonts below). Always consume theme colors/components — no hardcoded hexes (the only sanctioned exceptions live inside map widgets, e.g. the white connector dashes).
+
+## Map path (FASE 3 + redesign)
+
+- `features/map/widgets/map_geometry.dart` is the **single source of layout math** (`nodeDiameter`, `nodeSpacing`, `amplitude`, `labelZone`, `centers()`, `height()`). Layout (`Positioned` nodes) and painting (`PathConnectorPainter`) both consume it — never position nodes with `Transform`/`Column` stacking or hand-rolled math, that is what previously made connector lines drift away from nodes and overflow unit headers.
+- Nodes are rendered inside a `Stack` sized by `MapGeometry.height()`; the painter receives the same centers plus `nodeRadius`.
+- `PathNodeState` styling: completed = green border + check badge, current = red border + glow + voxi badge + name label (only the current node is labelled), pending = white node, muted brown border/icon. **No lock icons** (MVP: no gating).
+- `UnitBanner` is a horizontal banner (number badge + full title); its border/shadow follow the unit state (green when completed, red otherwise). Tapping a banner scrolls to that unit's first node.
+
+## Fonts and golden tests
+
+- DM Sans variants are **bundled** (`assets/fonts/DMSans-*.ttf`, declared under family `DMSans` in `pubspec.yaml`) so `google_fonts` resolves them from the asset manifest — the app works offline and no runtime fetch happens.
+- Golden tests live in `test/golden/` and use `golden_fonts.dart::loadGoldenFonts()` from `setUpAll`. `flutter test` runs the tester with `--disable-asset-fonts`/`--use-test-fonts`, so:
+  - `MaterialIcons` must be registered with `FontLoader` or every `Icon` renders as a missing-glyph box;
+  - `google_fonts` runtime fetching must stay disabled;
+  - the first testWidgets run that uses a heavy weight lays text out before the font resolves and renders blocky fallback glyphs — keep the `warm up text pipeline` first test.
+- Capture goldens on `find.byType(MaterialApp)` (full screen): capturing the widget alone composites its transparent background onto white and hides white-on-orange details.
+- Call `settleImages(tester)` before every `expectLater`: `pumpAndSettle` drains frames but not the real async asset decode, so the first test of a run captures blank images. The Voxi mascot PNGs are also cropped to a tight 512x512 square, otherwise they render as an invisible smudge at 24-48px.
+- Regenerate with `flutter test test/golden --update-goldens`. Map states covered: fresh / mid / all completed / narrow (320px).
 
 ## Direction (decided by product owner)
 

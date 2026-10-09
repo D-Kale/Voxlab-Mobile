@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
@@ -19,7 +20,6 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
     final user = auth.user;
-    final totalXp = ref.watch(totalXpStateProvider);
     final completedCount = ref.watch(completedExerciseCountProvider);
     final progress = ref.watch(progressNotifierProvider);
     final totalExercises = ref.watch(totalExercisesProvider);
@@ -27,9 +27,17 @@ class ProfileScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Perfil'),
+        title: Image.asset(
+          'assets/images/voxi_logo.png',
+          height: 28,
+          fit: BoxFit.contain,
+        ),
+        backgroundColor: AppColors.background,
+        elevation: 0,
       ),
       body: RefreshIndicator(
+        color: AppColors.accentRed,
+        backgroundColor: Colors.white,
         onRefresh: () async {
           await ref.read(authProvider.notifier).refreshUser();
           ref.invalidate(tracksProvider);
@@ -40,44 +48,103 @@ class ProfileScreen extends ConsumerWidget {
           children: [
             if (user != null) ...[
               ProfileHeader(user: user),
-              const SizedBox(height: 20),
-              XpSection(xp: totalXp),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+              XpSection(xp: user.xp),
+              const SizedBox(height: 16),
               StatsSection(
                 streakDays: user.streakDays,
                 completedCount: completedCount,
-                totalXp: totalXp,
+                totalXp: user.xp,
                 totalExercises: totalExercises,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               CompletedExercisesCard(progress: progress),
             ] else ...[
-              const Center(
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(),
+                  padding: const EdgeInsets.all(48),
+                  child: Column(
+                    children: [
+                      Image.asset(
+                        'assets/images/voxi_sleeping.png',
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Cargando perfil...',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.darkBrownLight,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
             const SizedBox(height: 24),
             if (auth.isAuthenticated)
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                onPressed: () async {
-                  await ref.read(authProvider.notifier).logout();
-                  if (context.mounted) context.go(AppRoutes.authWall);
-                },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                    side: const BorderSide(color: AppColors.error),
-                  ),
-                  child: const Text('Cerrar sesión'),
-                ),
-              ),
+              _LogoutButton(),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _LogoutButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer(
+      builder: (context, ref, _) {
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () async {
+              await ref.read(authProvider.notifier).logout();
+              if (context.mounted) context.go(AppRoutes.authWall);
+            },
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: AppColors.error, width: 3),
+                boxShadow: const [
+                  BoxShadow(
+                    color: AppColors.error,
+                    offset: Offset(0, 4),
+                    blurRadius: 0,
+                    spreadRadius: 0,
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.logout_rounded, size: 20, color: AppColors.error),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Cerrar sesión',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.error,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

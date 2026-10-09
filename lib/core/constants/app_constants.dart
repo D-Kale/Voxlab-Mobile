@@ -1,7 +1,10 @@
 class AppConstants {
   AppConstants._();
 
-  static const String apiBaseUrl = 'https://tvoxlab.tech/api/v1';
+  static const String apiBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://tvoxlab.tech/api/v1',
+  );
 
   static const int defaultPageSize = 20;
   static const Duration connectTimeout = Duration(seconds: 15);

@@ -35,6 +35,10 @@ class SecureStorage {
   Future<void> clearAll() async {
     await _storage.deleteAll();
   }
+
+  Future<void> delete(String key) async {
+    await _storage.delete(key: key);
+  }
 }
 
 final secureStorageProvider = Provider<SecureStorage>((ref) {

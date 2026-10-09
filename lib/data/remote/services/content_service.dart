@@ -18,30 +18,6 @@ class ContentService {
     return data.map((e) => _mapTrack(e as Map<String, dynamic>)).toList();
   }
 
-  Future<Track> getTrack(int id) async {
-    final response = await _dio.get('/tracks/$id');
-    final data = response.data['data'] as Map<String, dynamic>;
-    return _mapTrack(data);
-  }
-
-  Future<Module> getModule(int id) async {
-    final response = await _dio.get('/modules/$id');
-    final data = response.data['data'] as Map<String, dynamic>;
-    return _mapModule(data);
-  }
-
-  Future<Lesson> getLesson(int id) async {
-    final response = await _dio.get('/lessons/$id');
-    final data = response.data['data'] as Map<String, dynamic>;
-    return _mapLesson(data);
-  }
-
-  Future<List<Exercise>> getLessonExercises(int lessonId) async {
-    final response = await _dio.get('/lessons/$lessonId/exercises');
-    final data = response.data['data'] as List;
-    return data.map((e) => _mapPivotExercise(e as Map<String, dynamic>)).toList();
-  }
-
   Future<Exercise> getExercise(String id) async {
     final response = await _dio.get('/exercises/$id');
     final data = response.data['data'] as Map<String, dynamic>;

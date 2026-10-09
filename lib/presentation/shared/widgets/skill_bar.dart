@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/constants/app_colors.dart';
 
 Color scoreColor(int percent) {
   if (percent >= 80) {
-    return AppColors.secondary;
+    return AppColors.success;
   }
   if (percent >= 60) {
-    return AppColors.tertiary;
+    return AppColors.accentRed;
   }
   return AppColors.error;
 }
@@ -28,6 +29,7 @@ class SkillBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = scoreColor(percent);
     final ratio = (percent.clamp(0, 100) / 100).toDouble();
+
     return Semantics(
       label: '$label: $percent por ciento',
       child: Column(
@@ -37,37 +39,40 @@ class SkillBar extends StatelessWidget {
             children: [
               Semantics(
                 excludeSemantics: true,
-                child: Icon(icon, size: 18, color: color),
+                child: Icon(icon, size: 20, color: color),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.darkBrown,
                   ),
                 ),
               ),
               Text(
                 '$percent%',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+                style: GoogleFonts.dmSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
                   color: color,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              height: 10,
-              width: double.infinity,
+          const SizedBox(height: 8),
+          Container(
+            height: 14,
+            width: double.infinity,
+            decoration: BoxDecoration(
               color: AppColors.surfaceContainerHigh,
-              alignment: Alignment.centerLeft,
+              borderRadius: BorderRadius.circular(100),
+              border: Border.all(color: AppColors.accentRed, width: 2),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(100),
               child: TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0, end: ratio),
                 duration: const Duration(milliseconds: 800),
@@ -79,7 +84,20 @@ class SkillBar extends StatelessWidget {
                     child: child,
                   );
                 },
-                child: ColoredBox(color: color),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(100),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.4),
+                        offset: const Offset(0, 2),
+                        blurRadius: 4,
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),

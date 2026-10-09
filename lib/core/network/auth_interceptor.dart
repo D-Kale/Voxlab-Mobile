@@ -8,6 +8,7 @@ class AuthInterceptor extends Interceptor {
   AuthInterceptor({required this.ref});
 
   final Ref ref;
+  bool _handling401 = false;
 
   @override
   void onRequest(
@@ -26,11 +27,16 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    if (err.response?.statusCode == 401) {
-      final storage = ref.read(secureStorageProvider);
-      await storage.clearToken();
-      ref.read(authProvider.notifier).logout();
-      debugPrint('AuthInterceptor: 401 detected, logged out');
+    if (err.response?.statusCode == 401 && !_handling401) {
+      _handling401 = true;
+      try {
+        final storage = ref.read(secureStorageProvider);
+        await storage.clearToken();
+        await ref.read(authProvider.notifier).logout();
+        debugPrint('AuthInterceptor: 401 detected, logged out');
+      } finally {
+        _handling401 = false;
+      }
     }
 
     handler.next(err);

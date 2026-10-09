@@ -6,11 +6,8 @@ import '../../presentation/features/auth/login_screen.dart';
 import '../../presentation/features/auth/register_screen.dart';
 import '../../presentation/features/analyze/analyze_screen.dart';
 import '../../presentation/features/profile/profile_screen.dart';
-import '../../presentation/features/lesson/lesson_list_screen.dart';
 import '../../presentation/features/map/map_screen.dart';
-import '../../presentation/features/module/module_detail_screen.dart';
 import '../../presentation/features/practice/practice_screen.dart';
-import '../../presentation/features/track/track_detail_screen.dart';
 import '../../presentation/features/splash/splash_screen.dart';
 import '../../presentation/features/exercise/exercise_player_screen.dart';
 import '../../presentation/features/exercise/exercise_complete_screen.dart';
@@ -48,8 +45,6 @@ GoRoute _slideRoute({
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
-  ref.watch(authProvider.select((s) => s.status));
-
   return GoRouter(
     initialLocation: AppRoutes.splash,
     redirect: (context, state) {
@@ -81,27 +76,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const ProfileScreen(),
           ),
         ],
-      ),
-      _slideRoute(
-        path: AppRoutes.track,
-        builder: (_, state) {
-          final id = int.parse(state.pathParameters['id']!);
-          return TrackDetailScreen(trackId: id);
-        },
-      ),
-      _slideRoute(
-        path: AppRoutes.module,
-        builder: (_, state) {
-          final id = int.parse(state.pathParameters['id']!);
-          return ModuleDetailScreen(moduleId: id);
-        },
-      ),
-      _slideRoute(
-        path: AppRoutes.lesson,
-        builder: (_, state) {
-          final id = int.parse(state.pathParameters['id']!);
-          return LessonListScreen(lessonId: id);
-        },
       ),
       _slideRoute(
         path: AppRoutes.exerciseComplete,
