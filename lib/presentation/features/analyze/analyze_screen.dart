@@ -30,7 +30,7 @@ class AnalyzeScreen extends ConsumerWidget {
     final completedCount = ref.watch(completedExerciseCountProvider);
     final weekly = ref.watch(weeklyProgressProvider);
     final weekXp = weekly.total;
-    final todayXp = weekly.daily[DateTime.now().weekday - 1];
+    final todayXp = weekly.daily[ref.watch(clockProvider)().weekday - 1];
     final goalXp =
         ref.watch(onboardingProfileProvider).valueOrNull?.dailyGoalXp ??
         OnboardingProfile.defaultDailyGoalXp;

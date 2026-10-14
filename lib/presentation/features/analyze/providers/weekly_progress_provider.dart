@@ -42,7 +42,14 @@ class WeeklyProgressData {
   }
 }
 
+/// The current time; overridden in tests so the "today" highlight and the
+/// week window do not change from one day to the next.
+final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
+
 final weeklyProgressProvider = Provider<WeeklyProgressData>((ref) {
   final entries = ref.watch(progressNotifierProvider);
-  return WeeklyProgressData.fromEntries(entries);
+  return WeeklyProgressData.fromEntries(
+    entries,
+    now: ref.watch(clockProvider)(),
+  );
 });

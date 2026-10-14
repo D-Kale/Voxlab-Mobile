@@ -74,7 +74,10 @@ class _TourOverlayState extends State<_TourOverlay> {
   Rect? _targetRect(GlobalKey? key) {
     final box = key?.currentContext?.findRenderObject();
     if (box is! RenderBox || !box.attached || !box.hasSize) return null;
-    return (box.localToGlobal(Offset.zero) & box.size).inflate(8);
+    final rect = box.localToGlobal(Offset.zero) & box.size;
+    // Round targets (map nodes) get a circular spotlight with room for the
+    // progress ring; wide ones (tabs, bars) hug their edges.
+    return _isRound(rect) ? rect.inflate(16) : rect.inflate(4);
   }
 
   @override
@@ -169,7 +172,8 @@ class _ScrimPainter extends CustomPainter {
       canvas.drawPath(scrim, paint);
       return;
     }
-    final rrect = RRect.fromRectAndRadius(hole!, const Radius.circular(22));
+    final radius = _isRound(hole!) ? hole!.shortestSide / 2 : 18.0;
+    final rrect = RRect.fromRectAndRadius(hole!, Radius.circular(radius));
     canvas.drawPath(
       Path.combine(PathOperation.difference, scrim, Path()..addRRect(rrect)),
       paint,
@@ -305,3 +309,5 @@ class _TourCard extends StatelessWidget {
     );
   }
 }
+
+bool _isRound(Rect rect) => (rect.width - rect.height).abs() < 12;

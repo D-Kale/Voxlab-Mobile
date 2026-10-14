@@ -22,6 +22,14 @@ class OnboardingProfile {
 
   static const defaultDailyGoalXp = 20;
 
+  /// Daily goals offered in the onboarding and in Perfil.
+  static const dailyGoals = {
+    10: 'Casual',
+    20: 'Normal',
+    30: 'Serio',
+    50: 'Intenso',
+  };
+
   Map<String, dynamic> toJson() => {
     'motivation': motivation,
     'level': level,
@@ -79,6 +87,18 @@ class OnboardingStore {
     } catch (e) {
       debugPrint('OnboardingStore saveProfile error: $e');
     }
+  }
+
+  /// Changes only the daily goal, keeping the other answers.
+  Future<void> updateDailyGoal(int xp) async {
+    final current = await loadProfile();
+    await saveProfile(
+      OnboardingProfile(
+        motivation: current?.motivation ?? '',
+        level: current?.level ?? '',
+        dailyGoalXp: xp,
+      ),
+    );
   }
 
   Future<bool> _readFlag(String key) async {

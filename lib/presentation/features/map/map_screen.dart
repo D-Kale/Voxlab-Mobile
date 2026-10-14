@@ -127,7 +127,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         bottom: false,
         child: Column(
           children: [
-            TopStatsBar(key: TourKeys.statsBar),
+            TopStatsBar(spotlightKey: TourKeys.statsBar),
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.accentRed,

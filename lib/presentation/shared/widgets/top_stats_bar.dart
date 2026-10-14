@@ -9,7 +9,11 @@ import '../providers/progress_provider.dart';
 /// Duolingo-style top bar: mascot plus streak, XP and completed counters.
 /// Numbers pop when they change.
 class TopStatsBar extends ConsumerWidget {
-  const TopStatsBar({super.key});
+  const TopStatsBar({super.key, this.spotlightKey});
+
+  /// Put on the white bar itself (not the orange padding around it) so the
+  /// guided tour can spotlight exactly the bar.
+  final Key? spotlightKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,6 +25,7 @@ class TopStatsBar extends ConsumerWidget {
       color: AppColors.background,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
       child: Container(
+        key: spotlightKey,
         height: 52,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(

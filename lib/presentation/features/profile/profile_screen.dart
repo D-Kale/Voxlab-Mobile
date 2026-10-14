@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/audio/sound_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
+import '../../../data/local/onboarding_store.dart';
 import '../../shared/providers/auth_provider.dart';
 import '../../shared/providers/content_provider.dart';
 import '../../shared/providers/progress_provider.dart';
@@ -81,36 +82,152 @@ class ProfileScreen extends ConsumerWidget {
 class _SettingsCard extends ConsumerWidget {
   const _SettingsCard();
 
+  Future<void> _pickGoal(BuildContext context, WidgetRef ref, int current) {
+    return showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Meta diaria',
+                style: GoogleFonts.dmSans(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.darkBrown,
+                ),
+              ),
+              const SizedBox(height: 12),
+              for (final entry in OnboardingProfile.dailyGoals.entries)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: ChunkyCard(
+                    depth: 4,
+                    radius: 16,
+                    colors: entry.key == current
+                        ? const ChunkyColors(
+                            face: AppColors.primaryContainer,
+                            lip: AppColors.primary,
+                            content: AppColors.onPrimaryContainer,
+                            border: AppColors.primary,
+                          )
+                        : ChunkyColors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    onTap: () async {
+                      playSfx(sheetContext, Sfx.tap);
+                      await ref
+                          .read(onboardingStoreProvider)
+                          .updateDailyGoal(entry.key);
+                      ref.invalidate(onboardingProfileProvider);
+                      if (sheetContext.mounted) Navigator.pop(sheetContext);
+                    },
+                    semanticsLabel: '${entry.value}, ${entry.key} XP por día',
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            entry.value,
+                            style: GoogleFonts.dmSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.darkBrown,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${entry.key} XP por día',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.darkBrownLight,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final soundOn = ref.watch(soundEnabledProvider);
+    final goal =
+        ref.watch(onboardingProfileProvider).valueOrNull?.dailyGoalXp ??
+        OnboardingProfile.defaultDailyGoalXp;
+    final label = GoogleFonts.dmSans(
+      fontSize: 16,
+      fontWeight: FontWeight.w800,
+      color: AppColors.darkBrown,
+    );
     return ChunkyCard(
-      padding: const EdgeInsets.fromLTRB(18, 8, 8, 8),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(18, 4, 8, 4),
+      child: Column(
         children: [
-          Icon(
-            soundOn ? Icons.volume_up_rounded : Icons.volume_off_rounded,
-            color: AppColors.darkBrown,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Efectos de sonido',
-              style: GoogleFonts.dmSans(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: AppColors.darkBrown,
+          InkWell(
+            onTap: () => _pickGoal(context, ref, goal),
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              height: 52,
+              child: Row(
+                children: [
+                  const Icon(Icons.flag_rounded, color: AppColors.darkBrown),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text('Meta diaria', style: label)),
+                  Text(
+                    '$goal XP',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.darkBrownLight,
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.darkBrownLight,
+                  ),
+                  const SizedBox(width: 6),
+                ],
               ),
             ),
           ),
-          Switch(
-            value: soundOn,
-            activeThumbColor: Colors.white,
-            activeTrackColor: AppColors.success,
-            onChanged: (value) {
-              ref.read(soundEnabledProvider.notifier).set(value);
-              if (value) playSfx(context, Sfx.tap);
-            },
+          const Divider(height: 1, color: AppColors.cardBorder),
+          SizedBox(
+            height: 52,
+            child: Row(
+              children: [
+                Icon(
+                  soundOn ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+                  color: AppColors.darkBrown,
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Efectos de sonido', style: label)),
+                Switch(
+                  value: soundOn,
+                  activeThumbColor: Colors.white,
+                  activeTrackColor: AppColors.success,
+                  onChanged: (value) {
+                    ref.read(soundEnabledProvider.notifier).set(value);
+                    if (value) playSfx(context, Sfx.tap);
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),

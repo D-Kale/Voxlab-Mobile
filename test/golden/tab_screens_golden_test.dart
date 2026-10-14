@@ -8,6 +8,7 @@ import 'package:voxlab/domain/models/lesson_status.dart';
 import 'package:voxlab/domain/models/progress.dart';
 import 'package:voxlab/domain/models/user.dart';
 import 'package:voxlab/presentation/features/analyze/analyze_screen.dart';
+import 'package:voxlab/presentation/features/analyze/providers/weekly_progress_provider.dart';
 import 'package:voxlab/presentation/features/practice/practice_screen.dart';
 import 'package:voxlab/presentation/features/profile/profile_screen.dart';
 import 'package:voxlab/presentation/features/splash/splash_screen.dart';
@@ -141,6 +142,8 @@ void main() {
         overrides: [
           tracksProvider.overrideWith((_) async => [buildDemoTrack()]),
           progressNotifierProvider.overrideWith(_FakeProgressNotifier.new),
+          // A fixed Tuesday keeps the weekly chart golden stable.
+          clockProvider.overrideWithValue(() => DateTime(2026, 3, 17, 12)),
           authProvider.overrideWith((ref) => _FakeAuthNotifier(ref)),
         ],
         child: MaterialApp(

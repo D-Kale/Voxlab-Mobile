@@ -221,7 +221,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         onSelect: (v) => setState(() => _level = v),
       ),
       2 => _QuestionStep<int>(
-        question: 'Elegí tu meta diaria. Podés cambiarla cuando quieras.',
+        question: 'Elegí tu meta diaria. Podés cambiarla después en tu perfil.',
         options: _goals,
         selected: _goal,
         onSelect: (v) => setState(() => _goal = v),

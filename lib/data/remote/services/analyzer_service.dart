@@ -30,6 +30,34 @@ class AnalyzerService {
     );
     return response.data as Map<String, dynamic>;
   }
+
+  /// Uploads an oratory take to the speech AI (Whisper transcription plus
+  /// pace, pauses and filler words).
+  ///
+  /// Same envelope as [analyzeText]; `data` adds `transcript`,
+  /// `words_per_minute`, `pause_count`, `filler_words`... See
+  /// docs/md/ANALYZER.md in the backend repo. Transcription runs on CPU,
+  /// so the receive timeout is generous.
+  Future<Map<String, dynamic>> analyzeSpeech({
+    required String path,
+    required String fileName,
+    int? minSeconds,
+    int? targetSeconds,
+  }) async {
+    final response = await _dio.post(
+      '/exercises/analyze-speech',
+      data: FormData.fromMap({
+        'audio': await MultipartFile.fromFile(path, filename: fileName),
+        'min_seconds': ?minSeconds,
+        'target_seconds': ?targetSeconds,
+      }),
+      options: Options(
+        sendTimeout: const Duration(seconds: 60),
+        receiveTimeout: const Duration(seconds: 120),
+      ),
+    );
+    return response.data as Map<String, dynamic>;
+  }
 }
 
 final analyzerServiceProvider = Provider<AnalyzerService>((ref) {

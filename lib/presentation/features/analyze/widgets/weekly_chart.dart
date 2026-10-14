@@ -63,7 +63,10 @@ class WeeklyChart extends ConsumerWidget {
         Stack(
           alignment: Alignment.center,
           children: [
-            _ChartBars(daily: data.daily),
+            _ChartBars(
+              daily: data.daily,
+              today: ref.watch(clockProvider)().weekday - 1,
+            ),
             if (data.total == 0)
               Padding(
                 padding: const EdgeInsets.only(bottom: 40),
@@ -86,16 +89,18 @@ class WeeklyChart extends ConsumerWidget {
 }
 
 class _ChartBars extends StatelessWidget {
-  const _ChartBars({required this.daily});
+  const _ChartBars({required this.daily, required this.today});
 
   final List<int> daily;
+
+  /// Index of today in [daily] (Monday = 0).
+  final int today;
 
   static const double _maxBar = 96;
 
   @override
   Widget build(BuildContext context) {
     final maxValue = daily.fold(0, (a, b) => a > b ? a : b);
-    final today = DateTime.now().weekday - 1;
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),

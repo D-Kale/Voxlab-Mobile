@@ -21,6 +21,9 @@ class SpeechMetrics {
   /// gap between words, not a pause.
   static const minPause = Duration(milliseconds: 600);
 
+  /// Levels below this (dBFS) are never speech, whatever the room.
+  static const silenceDb = -50.0;
+
   /// Speech blips shorter than this (a cough, a click) are ignored.
   static const minSpeech = Duration(milliseconds: 200);
 
@@ -81,10 +84,10 @@ class SpeechMetrics {
     final sorted = [...levels]..sort();
     double percentile(double p) =>
         sorted[(p * (sorted.length - 1)).round().clamp(0, sorted.length - 1)];
-    final floor = percentile(0.15);
+    final floor = percentile(0.05);
     final peak = percentile(0.95);
-    // A flat take (no voice above the room noise) has no speech at all.
-    if (peak - floor < 8) {
+    // Nothing above a whisper: no voice at all.
+    if (peak < silenceDb) {
       return SpeechMetrics(
         duration: duration,
         speakingTime: Duration.zero,
@@ -92,7 +95,11 @@ class SpeechMetrics {
         longestPause: Duration.zero,
       );
     }
-    final threshold = math.max(floor + (peak - floor) * 0.35, -55.0);
+    // A flat but loud take is someone talking without stopping; otherwise
+    // the threshold sits between this take's quiet floor and its peaks.
+    final threshold = peak - floor < 8
+        ? silenceDb
+        : math.max(floor + (peak - floor) * 0.35, silenceDb);
 
     final minSpeechSamples =
         (minSpeech.inMilliseconds / interval.inMilliseconds).ceil();
