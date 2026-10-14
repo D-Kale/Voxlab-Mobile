@@ -3,6 +3,7 @@ import '../data/local/local_progress_store.dart';
 import '../domain/models/exercise.dart';
 import '../domain/models/exercise_content.dart';
 import '../domain/models/lesson.dart';
+import '../domain/models/lesson_status.dart';
 import '../domain/models/module.dart';
 import '../domain/models/progress.dart';
 import '../domain/models/track.dart';
@@ -188,11 +189,30 @@ class DemoSecureStorage extends SecureStorage {
   Future<void> clearToken() async {}
 }
 
-/// In-memory progress so every demo run starts from the same state.
+/// In-memory progress so every demo run starts from the same state: the
+/// first two exercises done, so the map, stats and chart have something
+/// to show.
 class DemoProgressStore extends LocalProgressStore {
   DemoProgressStore() : super.test();
 
-  final Map<String, List<Progress>> _data = {};
+  final Map<String, List<Progress>> _data = {
+    demoUser.id: [
+      Progress(
+        exerciseId: 'd1',
+        lessonId: 1,
+        status: LessonStatus.completed,
+        score: 10,
+        completedAt: DateTime.now().subtract(const Duration(days: 1)),
+      ),
+      Progress(
+        exerciseId: 'd2',
+        lessonId: 1,
+        status: LessonStatus.completed,
+        score: 10,
+        completedAt: DateTime.now(),
+      ),
+    ],
+  };
 
   @override
   Future<List<Progress>> load(String userId) async => _data[userId] ?? [];
