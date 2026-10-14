@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/constants/app_colors.dart';
 import 'chunky.dart';
 
 /// Per-type identity shared by the map, practice list and exercise header,
@@ -8,6 +9,14 @@ class ExerciseTypeStyle {
   const ExerciseTypeStyle._(this.colors, this.icon);
 
   final ChunkyColors colors;
+
+  /// Readable text color for this type on a light tint of [colors].
+  Color get ink => switch (colors) {
+    ChunkyColors.red => AppColors.accentRedDark,
+    ChunkyColors.green => AppColors.onSuccessContainer,
+    ChunkyColors.brown => AppColors.darkBrown,
+    _ => AppColors.onPrimaryContainer,
+  };
 
   /// Filled icon, readable on a colored face.
   final IconData icon;

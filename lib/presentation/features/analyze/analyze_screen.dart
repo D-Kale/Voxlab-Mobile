@@ -5,13 +5,17 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
+import '../../../domain/models/exercise.dart';
 import '../../../domain/models/progress.dart';
+import '../../../utils/exercise_name_utils.dart';
 import '../../shared/providers/content_provider.dart';
 import '../../shared/providers/progress_provider.dart';
-import '../../shared/widgets/pill_badge.dart';
-import '../../shared/widgets/section_header.dart';
-import '../../shared/widgets/voxi_state.dart';
-import '../../../utils/exercise_name_utils.dart';
+import '../../shared/widgets/chunky.dart';
+import '../../shared/widgets/exercise_type_style.dart';
+import '../../shared/widgets/motion.dart';
+import '../../shared/widgets/stat_tile.dart';
+import '../../shared/widgets/tab_header.dart';
+import 'providers/weekly_progress_provider.dart';
 import 'widgets/weekly_chart.dart';
 
 class AnalyzeScreen extends ConsumerWidget {
@@ -22,243 +26,190 @@ class AnalyzeScreen extends ConsumerWidget {
     final entries = ref.watch(progressNotifierProvider);
     final totalXp = ref.watch(totalXpStateProvider);
     final completedCount = ref.watch(completedExerciseCountProvider);
-    final nameMap = ref.watch(exerciseNameMapProvider);
+    final weekXp = ref.watch(weeklyProgressProvider).total;
+    final exercises = ref.watch(exerciseByIdProvider);
     final recent = entries.reversed.take(10).toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Image.asset(
-          'assets/images/voxi_logo.png',
-          height: 28,
-          fit: BoxFit.contain,
-        ),
-        backgroundColor: AppColors.background,
-        elevation: 0,
-      ),
-      body: entries.isEmpty
-          ? _EmptyAnalysis(onGoPractice: () => context.go(AppRoutes.practice))
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                // Voxi greeting header
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: AppColors.accentRed, width: 3.5),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: AppColors.accentRed,
-                        offset: Offset(0, 6),
-                        blurRadius: 0,
-                        spreadRadius: 0,
-                      ),
-                      BoxShadow(
-                        color: Color(0x33D93B27),
-                        offset: Offset(0, 2),
-                        blurRadius: 8,
-                        spreadRadius: 0,
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Image.asset(
+      body: SafeArea(
+        bottom: false,
+        child: entries.isEmpty
+            ? _EmptyAnalysis(onGoPractice: () => context.go(AppRoutes.practice))
+            : ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                children: [
+                  TabHeader(
+                    title: 'Tu Progreso',
+                    subtitle: 'Seguí así, cada ejercicio cuenta.',
+                    trailing: Bob(
+                      child: Image.asset(
                         'assets/images/voxi_awake.png',
-                        width: 48,
-                        height: 48,
+                        width: 64,
+                        height: 64,
                         fit: BoxFit.contain,
                       ),
-                      const SizedBox(width: 14),
+                    ),
+                  ),
+                  Row(
+                    children: [
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Tu Progreso',
-                              style: GoogleFonts.dmSans(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.darkBrown,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Seguí así, cada ejercicio cuenta.',
-                              style: GoogleFonts.dmSans(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.darkBrownLight,
-                              ),
-                            ),
-                          ],
+                        child: EntranceAnimation(
+                          child: StatTile(
+                            icon: Icons.bolt_rounded,
+                            color: AppColors.primary,
+                            value: '$totalXp',
+                            label: 'XP total',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: EntranceAnimation(
+                          delay: EntranceAnimation.stagger(1),
+                          child: StatTile(
+                            icon: Icons.check_circle_rounded,
+                            color: AppColors.success,
+                            value: '$completedCount',
+                            label: 'Completados',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: EntranceAnimation(
+                          delay: EntranceAnimation.stagger(2),
+                          child: StatTile(
+                            icon: Icons.calendar_today_rounded,
+                            color: AppColors.accentRed,
+                            value: '$weekXp',
+                            label: 'Esta semana',
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                // Stats badges
-                Row(
-                  children: [
-                    Expanded(
-                      child: PillBadge(
-                        icon: Icons.auto_awesome_rounded,
-                        label: '$totalXp XP',
-                        style: PillBadgeStyle.xp,
-                        showVoxi: false,
-                      ),
+                  const SizedBox(height: 14),
+                  EntranceAnimation(
+                    delay: EntranceAnimation.stagger(3),
+                    child: const ChunkyCard(
+                      padding: EdgeInsets.all(18),
+                      child: WeeklyChart(),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: PillBadge(
-                        icon: Icons.check_circle_rounded,
-                        label: '$completedCount completados',
-                        style: PillBadgeStyle.streak,
-                        showVoxi: false,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // Weekly chart
-                _ChartCard(chart: const WeeklyChart()),
-                const SizedBox(height: 24),
-                // History
-                SectionHeader(
-                  title: 'Historial reciente',
-                  icon: Icons.history_rounded,
-                  showVoxi: true,
-                  voxiState: VoxiState.awake,
-                ),
-                const SizedBox(height: 8),
-                for (final entry in recent)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _HistoryTile(entry: entry, nameMap: nameMap),
                   ),
-              ],
-            ),
-    );
-  }
-}
-
-class _ChartCard extends StatelessWidget {
-  const _ChartCard({required this.chart});
-
-  final Widget chart;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.accentRed, width: 3.5),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.accentRed,
-            offset: Offset(0, 6),
-            blurRadius: 0,
-            spreadRadius: 0,
-          ),
-          BoxShadow(
-            color: Color(0x33D93B27),
-            offset: Offset(0, 2),
-            blurRadius: 8,
-            spreadRadius: 0,
-          ),
-        ],
+                  const SizedBox(height: 22),
+                  Text(
+                    'Historial reciente',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.darkBrown,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  for (var i = 0; i < recent.length; i++)
+                    EntranceAnimation(
+                      delay: EntranceAnimation.stagger(i + 4),
+                      child: _HistoryTile(
+                        entry: recent[i],
+                        exercise: exercises[recent[i].exerciseId],
+                      ),
+                    ),
+                ],
+              ),
       ),
-      child: chart,
     );
   }
 }
 
 class _HistoryTile extends StatelessWidget {
-  const _HistoryTile({required this.entry, required this.nameMap});
+  const _HistoryTile({required this.entry, required this.exercise});
 
   final Progress entry;
-  final Map<String, String> nameMap;
+  final Exercise? exercise;
+
+  static String _dateLabel(DateTime? at) {
+    if (at == null) return '';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(at.year, at.month, at.day);
+    final time =
+        '${at.hour.toString().padLeft(2, '0')}:'
+        '${at.minute.toString().padLeft(2, '0')}';
+    final diff = today.difference(day).inDays;
+    if (diff == 0) return 'Hoy, $time';
+    if (diff == 1) return 'Ayer, $time';
+    return '${at.day}/${at.month} $time';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final name = resolveExerciseName(
-      entry.exerciseId,
-      '',
-      nameMap,
-    );
-    final completedAt = entry.completedAt;
-    final dateLabel = completedAt == null
-        ? ''
-        : '${completedAt.day}/${completedAt.month} '
-            '${completedAt.hour.toString().padLeft(2, '0')}:'
-            '${completedAt.minute.toString().padLeft(2, '0')}';
+    final type = exercise?.type ?? '';
+    final style = ExerciseTypeStyle.of(type);
+    final name = exercise == null
+        ? 'Ejercicio'
+        : exercise!.name.isNotEmpty
+        ? exercise!.name
+        : formatExerciseType(type);
+    final date = _dateLabel(entry.completedAt);
+    final xp = entry.score ?? 0;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.accentRed, width: 2.5),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.accentRed.withValues(alpha: 0.2),
-            offset: const Offset(0, 3),
-            blurRadius: 0,
-            spreadRadius: 0,
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.successContainer,
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.success, width: 2),
-          ),
-          child: Center(
-            child: Icon(
-              Icons.check_rounded,
-              color: AppColors.success,
-              size: 22,
-            ),
-          ),
-        ),
-        title: Text(
-          name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: GoogleFonts.dmSans(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.darkBrown,
-          ),
-        ),
-        subtitle: dateLabel.isEmpty
-            ? null
-            : Text(
-                dateLabel,
-                style: GoogleFonts.dmSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.darkBrownLight,
-                ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: ChunkyCard(
+        depth: 4,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: style.colors.face,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: style.colors.lip,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-        trailing: Text(
-          '+${entry.score ?? 0} XP',
-          style: GoogleFonts.dmSans(
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-            color: AppColors.primary,
-          ),
+              child: Icon(style.icon, color: style.colors.content, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.darkBrown,
+                    ),
+                  ),
+                  if (date.isNotEmpty)
+                    Text(
+                      date,
+                      style: GoogleFonts.dmSans(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.darkBrownLight,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (xp > 0)
+              ChunkyTag(
+                label: '+$xp XP',
+                icon: Icons.bolt_rounded,
+                color: AppColors.accentRed,
+              ),
+          ],
         ),
       ),
     );
@@ -273,20 +224,23 @@ class _EmptyAnalysis extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/images/voxi_sleeping.png',
-              width: 100,
-              height: 100,
-              fit: BoxFit.contain,
+            Bob(
+              child: Image.asset(
+                'assets/images/voxi_sleeping.png',
+                width: 120,
+                height: 120,
+                fit: BoxFit.contain,
+              ),
             ),
             const SizedBox(height: 24),
             Text(
               'Todavía no hay datos',
+              textAlign: TextAlign.center,
               style: GoogleFonts.dmSans(
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
@@ -300,86 +254,18 @@ class _EmptyAnalysis extends StatelessWidget {
               textAlign: TextAlign.center,
               style: GoogleFonts.dmSans(
                 fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: AppColors.darkBrownLight,
+                fontWeight: FontWeight.w600,
+                color: AppColors.darkBrown.withValues(alpha: 0.7),
                 height: 1.5,
               ),
             ),
-            const SizedBox(height: 24),
-            _VoxLabButton(
-              label: 'Ir a practicar',
-              onPressed: onGoPractice,
-              color: AppColors.accentRed,
+            const SizedBox(height: 28),
+            ChunkyButton(
+              label: 'IR A PRACTICAR',
               icon: Icons.fitness_center_rounded,
+              onPressed: onGoPractice,
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _VoxLabButton extends StatelessWidget {
-  const _VoxLabButton({
-    required this.label,
-    required this.onPressed,
-    required this.color,
-    this.icon,
-  });
-
-  final String label;
-  final VoidCallback onPressed;
-  final Color color;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(24),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: color, width: 3.5),
-            boxShadow: [
-              BoxShadow(
-                color: color,
-                offset: const Offset(0, 5),
-                blurRadius: 0,
-                spreadRadius: 0,
-              ),
-              BoxShadow(
-                color: color.withValues(alpha: 0.2),
-                offset: const Offset(0, 2),
-                blurRadius: 8,
-                spreadRadius: 0,
-              ),
-            ],
-          ),
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (icon != null) ...[
-                  Icon(icon, size: 20, color: Colors.white),
-                  const SizedBox(width: 10),
-                ],
-                Text(
-                  label,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );
