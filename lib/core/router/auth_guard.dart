@@ -13,6 +13,10 @@ class AuthGuard {
         location == AppRoutes.register;
     if (isAuthRoute || location == AppRoutes.splash) return null;
 
+    // The stored session has not been checked yet (deep link or web
+    // reload): let the splash restore it instead of showing the auth wall
+    // to a signed-in user.
+    if (authState.status == AuthStatus.initial) return AppRoutes.splash;
     if (!authState.isAuthenticated) return AppRoutes.authWall;
     return null;
   }

@@ -38,6 +38,9 @@ class _ReadingWidgetState extends State<ReadingWidget> {
     super.initState();
     _scrollController.addListener(_onScroll);
     _startTimer();
+    // A text that fits without scrolling is already read to the bottom;
+    // otherwise the button stayed on "Leyendo..." for the whole timer.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
   }
 
   void _onScroll() {

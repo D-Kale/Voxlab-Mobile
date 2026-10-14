@@ -113,7 +113,7 @@ class LessonProgressBar extends StatelessWidget {
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.cardBorder,
+        color: AppColors.idleLip.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(99),
       ),
       child: TweenAnimationBuilder<double>(

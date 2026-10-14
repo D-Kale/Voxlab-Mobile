@@ -86,6 +86,10 @@ class _QuizWidgetState extends State<QuizWidget> {
         Expanded(
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 280),
+            layoutBuilder: (current, previous) => Stack(
+              alignment: Alignment.topCenter,
+              children: [...previous, ?current],
+            ),
             transitionBuilder: (child, animation) => FadeTransition(
               opacity: animation,
               child: SlideTransition(
