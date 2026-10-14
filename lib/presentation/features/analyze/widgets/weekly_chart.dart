@@ -60,7 +60,26 @@ class WeeklyChart extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 18),
-        _ChartBars(daily: data.daily),
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            _ChartBars(daily: data.daily),
+            if (data.total == 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 40),
+                child: Text(
+                  'Sin XP esta semana todavía.\n¡Hacé un ejercicio hoy!',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.darkBrownLight,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ],
     );
   }
