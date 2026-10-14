@@ -10,6 +10,9 @@ import 'package:voxlab/domain/models/user.dart';
 import 'package:voxlab/domain/models/progress.dart';
 import 'package:voxlab/domain/repositories/i_auth_repository.dart';
 import 'package:voxlab/presentation/features/auth/register_screen.dart';
+import 'package:voxlab/presentation/shared/widgets/chunky.dart';
+
+import '../golden/golden_fonts.dart';
 import 'package:voxlab/presentation/shared/providers/repository_providers.dart';
 
 class _FakeAuthRepository implements IAuthRepository {
@@ -99,6 +102,7 @@ Future<void> _pumpRegisterScreen(
   WidgetTester tester,
   _FakeAuthRepository repo,
 ) async {
+  useReducedMotion(tester);
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -126,7 +130,7 @@ void main() {
     await _pumpRegisterScreen(tester, repo);
 
     await _fillForm(tester);
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
+    await tester.tap(find.widgetWithText(ChunkyButton, 'CREAR CUENTA'));
     await tester.pumpAndSettle();
 
     expect(repo.registerCalls, 1);
@@ -144,14 +148,14 @@ void main() {
     await _pumpRegisterScreen(tester, repo);
 
     await _fillForm(tester);
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
+    await tester.tap(find.widgetWithText(ChunkyButton, 'CREAR CUENTA'));
     await tester.pumpAndSettle();
 
     expect(
       find.text('Ese email ya está registrado. Probá iniciar sesión.'),
       findsOneWidget,
     );
-    expect(find.widgetWithText(ElevatedButton, 'Crear cuenta'), findsOneWidget);
+    expect(find.widgetWithText(ChunkyButton, 'CREAR CUENTA'), findsOneWidget);
     expect(find.text('MAP_OK'), findsNothing);
   });
 
@@ -160,7 +164,7 @@ void main() {
     await _pumpRegisterScreen(tester, repo);
 
     await _fillForm(tester);
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
+    await tester.tap(find.widgetWithText(ChunkyButton, 'CREAR CUENTA'));
     await tester.pumpAndSettle();
 
     expect(
@@ -182,7 +186,7 @@ void main() {
     // Enter invalid email
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(1), 'not-an-email');
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
+    await tester.tap(find.widgetWithText(ChunkyButton, 'CREAR CUENTA'));
     await tester.pumpAndSettle();
 
     expect(find.text('Email inválido'), findsOneWidget);

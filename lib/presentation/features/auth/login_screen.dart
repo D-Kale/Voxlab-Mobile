@@ -6,7 +6,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
 import '../../shared/providers/auth_provider.dart';
+import '../../shared/widgets/chunky.dart';
 import '../../shared/widgets/error_view.dart';
+import '../../shared/widgets/motion.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -31,10 +33,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final error = await ref.read(authProvider.notifier).login(
-      _emailController.text.trim(),
-      _passwordController.text,
-    );
+    final error = await ref
+        .read(authProvider.notifier)
+        .login(_emailController.text.trim(), _passwordController.text);
 
     if (error == null && mounted) {
       context.go(AppRoutes.map);
@@ -51,12 +52,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           tooltip: 'Volver',
-          onPressed: () => context.pop(),
-        ),
-        title: Image.asset(
-          'assets/images/voxi_logo.png',
-          height: 28,
-          fit: BoxFit.contain,
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go(AppRoutes.authWall),
         ),
         backgroundColor: AppColors.background,
         elevation: 0,
@@ -72,11 +69,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               // Voxi greeting
               Row(
                 children: [
-                  Image.asset(
-                    'assets/images/voxi_awake.png',
-                    width: 48,
-                    height: 48,
-                    fit: BoxFit.contain,
+                  Bob(
+                    child: Image.asset(
+                      'assets/images/voxi_awake.png',
+                      width: 72,
+                      height: 72,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -136,7 +135,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 prefixIcon: Icons.lock_rounded,
                 obscureText: _obscurePassword,
                 suffixIcon: Semantics(
-                  label: _obscurePassword ? 'Mostrar contraseña' : 'Ocultar contraseña',
+                  label: _obscurePassword
+                      ? 'Mostrar contraseña'
+                      : 'Ocultar contraseña',
                   child: IconButton(
                     icon: Icon(
                       _obscurePassword
@@ -155,11 +156,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 },
               ),
               const SizedBox(height: 32),
-              _VoxLabButton(
-                label: authState.isLoading ? 'Ingresando…' : 'Iniciar sesión',
+              ChunkyButton(
+                label: authState.isLoading ? 'INGRESANDO…' : 'INICIAR SESIÓN',
                 onPressed: authState.isLoading ? null : _login,
-                color: AppColors.accentRed,
-                icon: authState.isLoading ? Icons.hourglass_top_rounded : Icons.login_rounded,
+                icon: authState.isLoading
+                    ? Icons.hourglass_top_rounded
+                    : Icons.login_rounded,
               ),
               const SizedBox(height: 16),
               Center(
@@ -235,20 +237,20 @@ class _VoxLabTextField extends StatelessWidget {
           color: AppColors.darkBrownLight.withValues(alpha: 0.7),
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide(color: AppColors.accentRed, width: 3.5),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.cardBorder, width: 2),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide(color: AppColors.accentRed, width: 3.5),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.cardBorder, width: 2),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide(color: AppColors.accentRed, width: 4),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.darkBrown, width: 2.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide(color: AppColors.error, width: 3.5),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.error, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 20,
@@ -256,79 +258,6 @@ class _VoxLabTextField extends StatelessWidget {
         ),
       ),
       validator: validator,
-    );
-  }
-}
-
-class _VoxLabButton extends StatelessWidget {
-  const _VoxLabButton({
-    required this.label,
-    required this.onPressed,
-    required this.color,
-    this.icon,
-  });
-
-  final String label;
-  final VoidCallback? onPressed;
-  final Color color;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(24),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          decoration: BoxDecoration(
-            color: onPressed == null ? AppColors.locked : color,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: onPressed == null ? AppColors.outline : color,
-              width: 3.5,
-            ),
-            boxShadow: onPressed == null
-                ? []
-                : [
-                    BoxShadow(
-                      color: color,
-                      offset: const Offset(0, 5),
-                      blurRadius: 0,
-                      spreadRadius: 0,
-                    ),
-                    BoxShadow(
-                      color: color.withValues(alpha: 0.2),
-                      offset: const Offset(0, 2),
-                      blurRadius: 8,
-                      spreadRadius: 0,
-                    ),
-                  ],
-          ),
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (icon != null) ...[
-                  Icon(icon, size: 20, color: Colors.white),
-                  const SizedBox(width: 10),
-                ],
-                Text(
-                  label,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
