@@ -112,6 +112,7 @@ class LessonProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: height,
+      width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.idleLip.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(99),
