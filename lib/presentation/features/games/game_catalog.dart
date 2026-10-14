@@ -117,8 +117,8 @@ enum GameId {
     title: '¿Qué dice tu cuerpo?',
     tagline: 'Postura, mirada y gestos.',
     howTo:
-        'Deslizá a la derecha si la pose transmite seguridad y a la '
-        'izquierda si transmite nervios o cierre.',
+        'Deslizá a la derecha (APLOMO) si la pose transmite seguridad, y '
+        'a la izquierda (NERVIOS) si transmite nervios o cierre.',
     icon: Icons.accessibility_new_rounded,
     skill: GameSkill.body,
     colors: ChunkyColors.red,

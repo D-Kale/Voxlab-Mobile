@@ -123,6 +123,24 @@ void main() {
       });
     }
 
+    testWidgets('swipe games explain each card after the call',
+        (tester) async {
+      await pumpGame(tester, GameId.bodySwipe);
+      await tester.tap(find.text('¡A JUGAR!'));
+      await tester.pump();
+      await tester.tap(find.text('NERVIOS'));
+      // The card flies away, then the verdict shows.
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byType(VerdictBadge), findsOneWidget);
+      final why = bodyCards.map((c) => c.why).where(
+        (w) => find.text(w).evaluate().isNotEmpty,
+      );
+      expect(why, hasLength(1));
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 5));
+    });
+
     testWidgets('myth or fact plays to the results screen', (tester) async {
       await pumpGame(tester, GameId.mythFact);
       await tester.tap(find.text('¡A JUGAR!'));

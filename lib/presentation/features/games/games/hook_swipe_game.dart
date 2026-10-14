@@ -33,7 +33,7 @@ class _HookSwipeGameState extends State<HookSwipeGame> {
   Timer? _timer;
   int _index = 0;
   double _left = _secondsPerCard;
-  double _attention = 0.5;
+  double _attention = 0.6;
   int _correct = 0;
   int _points = 0;
   int _streak = 0;
@@ -78,7 +78,8 @@ class _HookSwipeGameState extends State<HookSwipeGame> {
       _attention = min(1, _attention + 0.12);
     } else {
       _streak = 0;
-      _attention = max(0, _attention - 0.22);
+      // Running out of time costs less than a wrong call.
+      _attention = max(0, _attention - (right == null ? 0.15 : 0.22));
     }
     Future.delayed(const Duration(milliseconds: 1300), () {
       if (!mounted || _finished) return;
@@ -183,6 +184,15 @@ class _HookSwipeGameState extends State<HookSwipeGame> {
         Expanded(
           child: SwipeDecider(
             enabled: _lastRight == null,
+            overlay: _lastRight == null
+                ? null
+                : _Verdict(
+                    good: _lastRight!,
+                    text: _lastRight!
+                        ? '¡Bien!'
+                        : (card.isGood ? 'Era un gancho' : 'Era un bostezo'),
+                    why: card.why,
+                  ),
             leftLabel: 'BOSTEZO',
             rightLabel: 'GANCHO',
             leftIcon: Icons.bedtime_rounded,
@@ -192,22 +202,32 @@ class _HookSwipeGameState extends State<HookSwipeGame> {
               key: ValueKey(_index),
               text: card.text,
               emoji: isClosing ? '🎬' : '🎤',
-              caption: _lastRight == null ? null : card.why,
             ),
           ),
         ),
-        SizedBox(
-          height: 48,
-          child: _lastRight == null
-              ? null
-              : Center(
-                  child: VerdictBadge(
-                    text: _lastRight!
-                        ? '¡Bien!'
-                        : (card.isGood ? 'Era un gancho' : 'Era un bostezo'),
-                    good: _lastRight!,
-                  ),
-                ),
+      ],
+    );
+  }
+}
+
+class _Verdict extends StatelessWidget {
+  const _Verdict({required this.good, required this.text, required this.why});
+
+  final bool good;
+  final String text;
+  final String why;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        VerdictBadge(text: text, good: good),
+        const SizedBox(height: 14),
+        Text(
+          why,
+          textAlign: TextAlign.center,
+          style: gameText(18, height: 1.3),
         ),
       ],
     );

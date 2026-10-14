@@ -18,6 +18,7 @@ class SwipeDecider extends StatefulWidget {
     this.leftIcon = Icons.close_rounded,
     this.rightIcon = Icons.check_rounded,
     this.enabled = true,
+    this.overlay,
   });
 
   final Widget child;
@@ -27,6 +28,9 @@ class SwipeDecider extends StatefulWidget {
   final IconData leftIcon;
   final IconData rightIcon;
   final bool enabled;
+
+  /// Shown over the card area once the card has flown away (the verdict).
+  final Widget? overlay;
 
   @override
   State<SwipeDecider> createState() => _SwipeDeciderState();
@@ -93,46 +97,61 @@ class _SwipeDeciderState extends State<SwipeDecider>
     return Column(
       children: [
         Expanded(
-          child: GestureDetector(
-            onHorizontalDragUpdate: widget.enabled
-                ? (d) => setState(() => _dx += d.delta.dx)
-                : null,
-            onHorizontalDragEnd: widget.enabled ? (_) => _settle() : null,
-            child: Center(
-              child: Transform.translate(
-                offset: Offset(_dx, 0),
-                child: Transform.rotate(
-                  angle: tilt * pi / 14,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      widget.child,
-                      if (tilt.abs() > 0.08)
-                        Positioned(
-                          top: 12,
-                          left: tilt > 0 ? 12 : null,
-                          right: tilt < 0 ? 12 : null,
-                          child: Opacity(
-                            opacity: (tilt.abs() * 3).clamp(0.0, 1.0),
-                            child: ChunkyTag(
-                              label: tilt > 0
-                                  ? widget.rightLabel
-                                  : widget.leftLabel,
-                              icon: tilt > 0
-                                  ? widget.rightIcon
-                                  : widget.leftIcon,
-                              color: tilt > 0
-                                  ? AppColors.successDark
-                                  : AppColors.accentRed,
-                              filled: true,
-                            ),
-                          ),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  onHorizontalDragUpdate: widget.enabled
+                      ? (d) => setState(() => _dx += d.delta.dx)
+                      : null,
+                  onHorizontalDragEnd: widget.enabled ? (_) => _settle() : null,
+                  child: Center(
+                    child: Transform.translate(
+                      offset: Offset(_dx, 0),
+                      child: Transform.rotate(
+                        angle: tilt * pi / 14,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            widget.child,
+                            if (tilt.abs() > 0.08)
+                              Positioned(
+                                top: 12,
+                                left: tilt > 0 ? 12 : null,
+                                right: tilt < 0 ? 12 : null,
+                                child: Opacity(
+                                  opacity: (tilt.abs() * 3).clamp(0.0, 1.0),
+                                  child: ChunkyTag(
+                                    label: tilt > 0
+                                        ? widget.rightLabel
+                                        : widget.leftLabel,
+                                    icon: tilt > 0
+                                        ? widget.rightIcon
+                                        : widget.leftIcon,
+                                    color: tilt > 0
+                                        ? AppColors.successDark
+                                        : AppColors.accentRed,
+                                    filled: true,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                    ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+              if (widget.overlay != null)
+                Positioned.fill(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 28),
+                      child: widget.overlay,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
         Padding(

@@ -26,7 +26,7 @@ class BodySwipeGame extends StatefulWidget {
 
 class _BodySwipeGameState extends State<BodySwipeGame> {
   static const _cards = 12;
-  static const _seconds = 45.0;
+  static const _seconds = 60.0;
 
   late final List<SwipeCard> _deck;
   Timer? _timer;
@@ -128,27 +128,46 @@ class _BodySwipeGameState extends State<BodySwipeGame> {
         Expanded(
           child: SwipeDecider(
             enabled: _lastRight == null,
+            overlay: _lastRight == null
+                ? null
+                : _Verdict(
+                    good: _lastRight!,
+                    text: _lastRight! ? '¡Bien leído!' : 'Era al revés',
+                    why: card.why,
+                  ),
             leftLabel: 'NERVIOS',
-            rightLabel: 'SEGURIDAD',
+            rightLabel: 'APLOMO',
             onDecide: _decide,
             child: DeckCard(
               key: ValueKey(_index),
               text: card.text,
               emoji: card.emoji,
-              caption: _lastRight == null ? null : card.why,
             ),
           ),
         ),
-        SizedBox(
-          height: 48,
-          child: _lastRight == null
-              ? null
-              : Center(
-                  child: VerdictBadge(
-                    text: _lastRight! ? '¡Bien leído!' : 'Era al revés',
-                    good: _lastRight!,
-                  ),
-                ),
+      ],
+    );
+  }
+}
+
+class _Verdict extends StatelessWidget {
+  const _Verdict({required this.good, required this.text, required this.why});
+
+  final bool good;
+  final String text;
+  final String why;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        VerdictBadge(text: text, good: good),
+        const SizedBox(height: 14),
+        Text(
+          why,
+          textAlign: TextAlign.center,
+          style: gameText(18, height: 1.3),
         ),
       ],
     );
