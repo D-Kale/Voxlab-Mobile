@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/audio/sound_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
 import '../../../data/local/onboarding_store.dart';
@@ -275,6 +276,7 @@ class _QuestionStep<T> extends StatelessWidget {
                   selected: options[i].value == selected,
                   onTap: () {
                     HapticFeedback.selectionClick();
+                    playSfx(context, Sfx.tap);
                     onSelect(options[i].value);
                   },
                 ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../utils/exercise_name_utils.dart';
 import '../../../shared/widgets/chunky.dart';
@@ -373,6 +374,7 @@ class UnitPathSection extends StatelessWidget {
     final typeLabel = formatExerciseType(exercise.type);
     final xp = exerciseXpReward(exercise);
     final done = node.state == PathNodeState.completed;
+    playSfx(nodeContext, Sfx.pop);
 
     if (node.state == PathNodeState.locked) {
       showLessonPopover(
@@ -404,6 +406,7 @@ class UnitPathSection extends StatelessWidget {
   }
 
   void _openTrophyPopover(BuildContext trophyContext) {
+    playSfx(trophyContext, unit.isDone ? Sfx.unlock : Sfx.pop);
     final remaining = unit.nodes.length - unit.doneCount;
     showLessonPopover(
       trophyContext,

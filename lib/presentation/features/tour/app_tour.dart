@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/audio/sound_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../shared/widgets/chunky.dart';
 import '../../shared/widgets/motion.dart';
@@ -62,6 +63,7 @@ class _TourOverlayState extends State<_TourOverlay> {
   bool get _isLast => _index == widget.steps.length - 1;
 
   void _next() {
+    playSfx(context, _isLast ? Sfx.unlock : Sfx.tap);
     if (_isLast) {
       widget.onDone();
     } else {

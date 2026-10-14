@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/audio/sound_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
 import '../../shared/providers/auth_provider.dart';
@@ -39,6 +40,7 @@ class ProfileScreen extends ConsumerWidget {
           pendingCount: (totalExercises - completedCount).clamp(0, 1 << 30),
         ),
         CompletedExercisesCard(progress: progress),
+        const _SettingsCard(),
       ] else
         const _LoadingProfile(),
       if (auth.isAuthenticated) const _LogoutButton(),
@@ -71,6 +73,46 @@ class ProfileScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SettingsCard extends ConsumerWidget {
+  const _SettingsCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final soundOn = ref.watch(soundEnabledProvider);
+    return ChunkyCard(
+      padding: const EdgeInsets.fromLTRB(18, 8, 8, 8),
+      child: Row(
+        children: [
+          Icon(
+            soundOn ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+            color: AppColors.darkBrown,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Efectos de sonido',
+              style: GoogleFonts.dmSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppColors.darkBrown,
+              ),
+            ),
+          ),
+          Switch(
+            value: soundOn,
+            activeThumbColor: Colors.white,
+            activeTrackColor: AppColors.success,
+            onChanged: (value) {
+              ref.read(soundEnabledProvider.notifier).set(value);
+              if (value) playSfx(context, Sfx.tap);
+            },
+          ),
+        ],
       ),
     );
   }

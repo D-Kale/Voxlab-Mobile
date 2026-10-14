@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../domain/models/exercise_content.dart';
 import '../../../../domain/models/exercise_outcome.dart';
@@ -47,8 +48,10 @@ class _QuizWidgetState extends State<QuizWidget> {
     if (_selectedIndex == null || _checked) return;
     if (_isCorrect) {
       HapticFeedback.mediumImpact();
+      playSfx(context, Sfx.correct);
     } else {
       HapticFeedback.heavyImpact();
+      playSfx(context, Sfx.wrong);
     }
     setState(() {
       if (_isCorrect) _correctCount++;

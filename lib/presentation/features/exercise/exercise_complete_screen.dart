@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/audio/sound_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
 import '../../../domain/models/session_result.dart';
@@ -19,6 +20,7 @@ class ExerciseCompleteScreen extends StatefulWidget {
 
 class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
   bool _isNavigating = false;
+  bool _soundPlayed = false;
 
   void goBack() {
     if (_isNavigating) return;
@@ -33,6 +35,12 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
     final isReview = (extra?['isReview'] as bool?) ?? false;
     final aiResult = extra?['sessionResult'] as SessionResult?;
     final result = aiResult ?? SessionResultBuilder.fromScore(score);
+    if (!_soundPlayed) {
+      _soundPlayed = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) playSfx(context, isReview ? Sfx.pop : Sfx.complete);
+      });
+    }
 
     return PopScope(
       canPop: false,
