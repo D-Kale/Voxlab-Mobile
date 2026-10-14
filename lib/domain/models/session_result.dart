@@ -12,13 +12,11 @@ import 'speech_metrics.dart';
 /// `score_breakdown` map keyed by Spanish component names, and a general
 /// `feedback` string list). [SessionResult.fromJson] parses that envelope.
 ///
-/// Quiz, reading and oratory have no AI endpoint yet, so they fall back to
-/// [SessionResultBuilder.fromScore]. The results screen must not care which
-/// path produced the value.
-///
-/// TODO(backend): no AI analysis endpoint exists for oratory (audio),
-/// quiz or reading exercises — only analyze-text for writing. When those
-/// land, map them through SessionResult.fromJson as well.
+/// Oratory uses `POST /exercises/analyze-speech` with the same envelope.
+/// When the AI is unreachable, writing and oratory fall back to on-device
+/// analysis ([SessionResultBuilder.fromWriting] / `fromSpeech`); quiz and
+/// reading use [SessionResultBuilder.fromScore]. The results screen must
+/// not care which path produced the value.
 class SessionSkill {
   const SessionSkill({
     required this.key,
@@ -83,6 +81,8 @@ class SessionResult {
     required this.tips,
     this.readabilityLabel,
     this.fillerWords,
+    this.aiFeedback,
+    this.byAi = false,
   });
 
   final int overall;
@@ -92,11 +92,18 @@ class SessionResult {
   final String? readabilityLabel;
   final int? fillerWords;
 
+  /// The LLM coach's tip about the content, when the backend used it.
+  final String? aiFeedback;
+
+  /// True when the backend analyzer produced this result.
+  final bool byAi;
+
   factory SessionResult.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>? ?? json;
     final overall = (data['score'] as num?)?.toInt() ?? 0;
 
-    final breakdown = data['score_breakdown'] as Map<String, dynamic>? ?? {};
+    final breakdown =
+        (data['score_breakdown'] as Map?)?.cast<String, dynamic>() ?? {};
     final skills =
         breakdown.entries
             .map(
@@ -108,9 +115,11 @@ class SessionResult {
             .toList()
           ..sort((a, b) => b.percent.compareTo(a.percent));
 
+    final aiFeedback = (data['ai_feedback'] as String?)?.trim();
     final tips = <SessionTip>[
       for (final text in data['feedback'] as List<dynamic>? ?? [])
-        if (text is String && text.isNotEmpty)
+        // The coach tip is also prepended to `feedback`; it is shown apart.
+        if (text is String && text.isNotEmpty && text != aiFeedback)
           SessionTip(text: text, isPositive: true),
     ];
 
@@ -128,6 +137,8 @@ class SessionResult {
       tips: tips,
       readabilityLabel: readability?['label'] as String?,
       fillerWords: (data['filler_words'] as num?)?.toInt(),
+      aiFeedback: aiFeedback == null || aiFeedback.isEmpty ? null : aiFeedback,
+      byAi: true,
     );
   }
 
@@ -218,12 +229,103 @@ class SessionResultBuilder {
     );
   }
 
+  /// Scores a writing exercise on the device when the AI is unreachable:
+  /// length against the limits, requirement keywords found in the text,
+  /// and paragraph/sentence structure. Rougher than the backend analyzer,
+  /// but based on the actual text.
+  static SessionResult fromWriting(
+    String text, {
+    required List<String> requirements,
+    required int minWords,
+    required int maxWords,
+  }) {
+    final words = text.trim().isEmpty
+        ? 0
+        : text.trim().split(RegExp(r'\s+')).length;
+    final longitud = words < minWords
+        ? (words / math.max(minWords, 1) * 70).round()
+        : words > maxWords
+        ? 80
+        : 100;
+
+    final lower = _fold(text);
+    final missing = <String>[];
+    var covered = 0;
+    for (final r in requirements) {
+      // Crude stemming: the first 5 letters of each meaningful word, so
+      // "respiración" matches "respirar".
+      final stems = _fold(r)
+          .split(RegExp(r'[^a-zñ0-9]+'))
+          .where((w) => w.length > 3)
+          .map((w) => w.substring(0, math.min(5, w.length)))
+          .toList();
+      final hit = stems.isEmpty || stems.any(lower.contains);
+      hit ? covered++ : missing.add(r);
+    }
+
+    final paragraphs = text
+        .split(RegExp(r'\n\s*\n'))
+        .where((p) => p.trim().isNotEmpty)
+        .length;
+    final sentences = RegExp(r'[.!?]+').allMatches(text).length;
+    final estructura = math.min(
+      100,
+      (paragraphs >= 3 ? 50 : paragraphs * 17) + math.min(sentences, 5) * 10,
+    );
+
+    final breakdown = <String, int>{
+      'longitud': longitud,
+      if (requirements.isNotEmpty)
+        'cobertura_requisitos': (covered / requirements.length * 100).round(),
+      'estructura': estructura,
+    }.map((k, v) => MapEntry(k, v.clamp(0, 100)));
+
+    final skills = [
+      for (final e in breakdown.entries)
+        SessionSkill.fromBreakdown(e.key, e.value),
+    ]..sort((a, b) => b.percent.compareTo(a.percent));
+    final overall =
+        (breakdown.values.reduce((a, b) => a + b) / breakdown.length).round();
+
+    return SessionResult(
+      overall: overall,
+      level: levelFor(overall),
+      skills: skills,
+      tips: [
+        SessionTip(
+          text: 'Escribiste $words palabras y completaste el ejercicio.',
+          isPositive: true,
+        ),
+        if (missing.isNotEmpty)
+          SessionTip(
+            text:
+                'No encontramos en tu texto: "${missing.first}". Sumalo '
+                'la próxima vez.',
+            isPositive: false,
+          )
+        else if (paragraphs < 3)
+          const SessionTip(
+            text:
+                'Organizá tu texto en introducción, desarrollo y cierre, '
+                'separados en párrafos.',
+            isPositive: false,
+          ),
+      ],
+    );
+  }
+
+  /// Lowercase without Spanish accents, for keyword matching.
+  static String _fold(String s) => s
+      .toLowerCase()
+      .replaceAll(RegExp('[áà]'), 'a')
+      .replaceAll(RegExp('[éè]'), 'e')
+      .replaceAll(RegExp('[íì]'), 'i')
+      .replaceAll(RegExp('[óò]'), 'o')
+      .replaceAll(RegExp('[úùü]'), 'u');
+
   /// Scores a recorded take from its delivery metrics (on-device timing,
   /// plus filler words and pace when the speech AI provided them).
-  ///
-  /// TODO(backend): replace with the AI's own score_breakdown once
-  /// POST /exercises/analyze-speech exists; this stays as the offline
-  /// fallback.
+  /// Offline fallback of POST /exercises/analyze-speech.
   static SessionResult fromSpeech(
     SpeechMetrics m, {
     required int targetSeconds,

@@ -247,3 +247,60 @@ class AnswerFeedbackPanel extends StatelessWidget {
     );
   }
 }
+
+/// The LLM coach's tip about the content of a writing or oratory attempt.
+class AiCoachCard extends StatelessWidget {
+  const AiCoachCard({super.key, required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Consejo de tu coach IA: $text',
+      excludeSemantics: true,
+      child: ChunkyCard(
+        colors: ChunkyColors.brown,
+        depth: 4,
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.auto_awesome_rounded,
+              color: AppColors.gold,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'TU COACH IA',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                      color: Colors.white.withValues(alpha: 0.75),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    text,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

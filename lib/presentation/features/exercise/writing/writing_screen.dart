@@ -62,26 +62,35 @@ class _WritingWidgetState extends ConsumerState<WritingWidget> {
       _errorText = null;
     });
 
+    final text = _controller.text.trim();
+    SessionResult result;
     try {
       final response = await ref
           .read(analyzerServiceProvider)
           .analyzeText(
-            text: _controller.text.trim(),
+            text: text,
             requirements: widget.requirements,
             minWords: widget.minWords,
             maxWords: widget.maxWords,
           );
-      final outcome = ExerciseOutcome(
-        score: (response['data']?['score'] as num?)?.toInt() ?? widget.points,
-        sessionResult: SessionResult.fromJson(response),
+      result = SessionResult.fromJson(response);
+    } catch (e) {
+      // AI unreachable (offline, demo, expired session): score the text on
+      // the device so the session never blocks.
+      debugPrint('Writing AI unavailable, using on-device analysis: $e');
+      result = SessionResultBuilder.fromWriting(
+        text,
+        requirements: widget.requirements,
+        minWords: widget.minWords,
+        maxWords: widget.maxWords,
       );
-      widget.onCompleted?.call(outcome);
-    } catch (_) {
-      // Analyzer unreachable: degrade gracefully to the heuristic score
-      // so the session never blocks. TODO(ux): offer a retry instead of
-      // silently falling back when the backend is back online.
-      widget.onCompleted?.call(ExerciseOutcome(score: widget.points));
     }
+    if (!mounted) return;
+    // XP is the exercise reward shown before starting (+N XP); the AI score
+    // only drives the results screen.
+    widget.onCompleted?.call(
+      ExerciseOutcome(score: widget.points, sessionResult: result),
+    );
   }
 
   @override

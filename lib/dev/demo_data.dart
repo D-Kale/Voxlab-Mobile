@@ -1,5 +1,9 @@
+import 'package:dio/dio.dart';
+
+import '../core/network/api_exceptions.dart';
 import '../core/storage/secure_storage.dart';
 import '../data/local/local_progress_store.dart';
+import '../data/remote/services/analyzer_service.dart';
 import '../domain/models/exercise.dart';
 import '../domain/models/exercise_content.dart';
 import '../domain/models/lesson.dart';
@@ -271,4 +275,28 @@ class DemoProgressStore extends LocalProgressStore {
 
   @override
   Future<void> clear(String userId) async => _data.remove(userId);
+}
+
+/// The demo token is fake, so the real AI endpoints would answer 401. Fail
+/// fast instead and let the exercises use their on-device analysis. Test
+/// the AI with the production entrypoint and a real account.
+class DemoAnalyzerService extends AnalyzerService {
+  DemoAnalyzerService() : super(Dio());
+
+  @override
+  Future<Map<String, dynamic>> analyzeText({
+    required String text,
+    required List<String> requirements,
+    required int minWords,
+    required int maxWords,
+  }) => Future.error(NetworkException('IA no disponible en modo demo'));
+
+  @override
+  Future<Map<String, dynamic>> analyzeSpeech({
+    required String path,
+    required String fileName,
+    int? minSeconds,
+    int? targetSeconds,
+    String? topic,
+  }) => Future.error(NetworkException('IA no disponible en modo demo'));
 }

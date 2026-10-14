@@ -137,6 +137,13 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
                             ),
                           ),
                         ),
+                        if (result.aiFeedback != null) ...[
+                          const SizedBox(height: 14),
+                          EntranceAnimation(
+                            delay: const Duration(milliseconds: 500),
+                            child: AiCoachCard(text: result.aiFeedback!),
+                          ),
+                        ],
                         if (result.tips.isNotEmpty) ...[
                           const SizedBox(height: 14),
                           EntranceAnimation(
@@ -146,7 +153,11 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const _CardTitle('Consejos de la IA'),
+                                  _CardTitle(
+                                    result.byAi
+                                        ? 'Consejos de la IA'
+                                        : 'Consejos',
+                                  ),
                                   const SizedBox(height: 12),
                                   for (final tip in result.tips)
                                     _TipRow(tip: tip),

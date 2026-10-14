@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 import 'core/storage/secure_storage.dart';
 import 'data/local/local_progress_store.dart';
+import 'data/remote/services/analyzer_service.dart';
 import 'data/repositories/content_repository_impl.dart';
 import 'dev/demo_data.dart';
 import 'presentation/shared/providers/repository_providers.dart';
@@ -21,6 +22,7 @@ void main() {
         secureStorageProvider.overrideWithValue(DemoSecureStorage()),
         contentRepositoryProvider.overrideWithValue(DemoContentRepository()),
         localProgressStoreProvider.overrideWithValue(DemoProgressStore()),
+        analyzerServiceProvider.overrideWithValue(DemoAnalyzerService()),
       ],
       child: const VoxlabApp(),
     ),
