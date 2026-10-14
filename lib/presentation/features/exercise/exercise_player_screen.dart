@@ -1,11 +1,9 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../core/network/api_exceptions.dart';
 import '../../../core/router/routes.dart';
 import '../../../domain/models/exercise.dart';
 import '../../../domain/models/exercise_content.dart';
@@ -108,7 +106,6 @@ class _ExerciseBody extends ConsumerWidget {
       final OratoryContent o => o.points,
       final AudioContent a => a.points,
       final VideoContent v => v.points,
-      _ => 10,
     };
   }
 
