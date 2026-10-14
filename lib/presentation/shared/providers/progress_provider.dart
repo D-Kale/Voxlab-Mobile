@@ -7,10 +7,13 @@ import '../../../domain/models/progress.dart';
 import '../../../utils/unlock_utils.dart';
 import '../providers/auth_provider.dart';
 import 'content_provider.dart';
+import 'game_records_provider.dart';
 
 final totalXpStateProvider = Provider<int>((ref) {
   final entries = ref.watch(progressNotifierProvider);
-  return entries.fold(0, (int sum, p) => sum + (p.score ?? 0));
+  final lessons = entries.fold(0, (int sum, p) => sum + (p.score ?? 0));
+  // Minigames on the Practice tab earn XP too.
+  return lessons + ref.watch(gameRecordsProvider).xp;
 });
 
 final completedExerciseIdsProvider = Provider<Set<String>>((ref) {

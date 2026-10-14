@@ -10,6 +10,7 @@ import 'package:voxlab/domain/models/progress.dart';
 import 'package:voxlab/domain/models/user.dart';
 import 'package:voxlab/presentation/features/analyze/analyze_screen.dart';
 import 'package:voxlab/presentation/features/map/map_screen.dart';
+import 'package:voxlab/presentation/features/games/game_catalog.dart';
 import 'package:voxlab/presentation/features/practice/practice_screen.dart';
 import 'package:voxlab/presentation/features/profile/profile_screen.dart';
 import 'package:voxlab/presentation/shared/providers/auth_provider.dart';
@@ -144,86 +145,32 @@ void main() {
   }
 
   group('Practice tab', () {
-    testWidgets('every type renders a human label, never the raw type',
-        (tester) async {
-      await pump(tester, const PracticeScreen());
-
-      // The fixture contains both 'oratory' and 'oratory_minigame'.
-      expect(find.text('Ejercicio'), findsNothing);
-      expect(find.text('oratory'), findsNothing);
-      expect(find.text('oratory_minigame'), findsNothing);
-    });
-
-    testWidgets('renders header, filter chips and every exercise',
+    testWidgets('renders the daily challenge and every minigame',
         (tester) async {
       await pump(tester, const PracticeScreen());
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Practicar Libre'), findsOneWidget);
-      expect(find.text('Todos'), findsOneWidget);
-      // e1, e2 and e5 are done; e3 is next, so 4 of 7 are open.
-      expect(find.text('7 ejercicios · 4 desbloqueados'), findsOneWidget);
-      expect(find.text('Lectura en voz alta'), findsOneWidget);
+      expect(find.text('Reto del día'), findsOneWidget);
+      for (final game in GameId.values) {
+        await tester.scrollUntilVisible(
+          find.text(game.title),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(find.text(game.title), findsOneWidget);
+      }
     });
 
-    testWidgets('filtering by type narrows the list', (tester) async {
+    testWidgets('groups games by skill', (tester) async {
       await pump(tester, const PracticeScreen());
 
-      // The type name also appears inside every exercise tile chip, so the
-      // tap must be scoped to the filter row.
-      await tester.tap(
-        find.descendant(
-          of: find.byKey(const Key('practice-type-filters')),
-          matching: find.text('Quiz'),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(tester.takeException(), isNull);
-      expect(find.text('2 ejercicios · 2 desbloqueados'), findsOneWidget);
-      expect(find.text('Lectura en voz alta'), findsNothing);
-      expect(find.text('Pronunciación'), findsWidgets);
-    });
-
-    testWidgets('one chip per kind even when the backend varies the type',
-        (tester) async {
-      await pump(tester, const PracticeScreen());
-
-      // The fixture has both 'oratory' and 'oratory_minigame'.
-      expect(
-        find.descendant(
-          of: find.byKey(const Key('practice-type-filters')),
-          matching: find.text('Oratoria'),
-        ),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('locked exercises explain why instead of opening',
-        (tester) async {
-      await pump(tester, const PracticeScreen(), withRouter: true);
-
-      // e7 comes after the next exercise (e3), so it is locked.
-      final locked = find.text('Discurso de 1 minuto');
-      // scrollUntilVisible stops once the tile is built in the cache
-      // extent; ensureVisible then brings it fully on screen.
+      expect(find.text(GameSkill.start.label), findsOneWidget);
       await tester.scrollUntilVisible(
-        locked,
+        find.text(GameSkill.improv.label),
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.ensureVisible(locked);
-      await tester.pumpAndSettle();
-      await tester.tap(locked);
-      await tester.pumpAndSettle();
-
-      expect(
-        find.text(
-          'Completá los ejercicios anteriores del camino para desbloquearlo.',
-        ),
-        findsOneWidget,
-      );
-      expect(find.byType(PracticeScreen), findsOneWidget);
+      expect(find.text(GameSkill.improv.label), findsOneWidget);
     });
 
     testWidgets('no overflow on a narrow screen', (tester) async {

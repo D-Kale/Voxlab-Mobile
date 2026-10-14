@@ -13,6 +13,8 @@ import '../../presentation/features/practice/practice_screen.dart';
 import '../../presentation/features/splash/splash_screen.dart';
 import '../../presentation/features/exercise/exercise_player_screen.dart';
 import '../../presentation/features/exercise/exercise_complete_screen.dart';
+import '../../presentation/features/games/game_catalog.dart';
+import '../../presentation/features/games/game_screen.dart';
 import '../../presentation/shared/providers/auth_provider.dart';
 import 'app_shell.dart';
 import 'auth_guard.dart';
@@ -78,6 +80,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const ProfileScreen(),
           ),
         ],
+      ),
+      _slideRoute(
+        path: AppRoutes.game,
+        builder: (_, state) {
+          final game = GameId.fromSlug(state.pathParameters['slug'] ?? '');
+          return game == null
+              ? const PracticeScreen()
+              : GameScreen(game: game);
+        },
       ),
       _slideRoute(
         path: AppRoutes.exerciseComplete,

@@ -4,6 +4,7 @@ class AppRoutes {
   static const String splash = '/';
   static const String map = '/map';
   static const String practice = '/practice';
+  static const String game = '/practice/game/:slug';
   static const String analyze = '/analyze';
   static const String profile = '/profile';
   static const String exercise = '/exercise/:id';
@@ -15,4 +16,6 @@ class AppRoutes {
   static const String register = '/auth/register';
 
   static String exercisePath(String id) => '/exercise/$id';
+
+  static String gamePath(String slug) => '/practice/game/$slug';
 }
