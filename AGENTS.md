@@ -2,7 +2,7 @@
 
 ## Project
 
-Voxlab — gamified public-speaking trainer. Single Flutter package (no monorepo), dark-only Material 3 app backed by a REST API at `https://tvoxlab.tech/api/v1` (`lib/core/constants/app_constants.dart`). UI copy is Spanish.
+Voxlab — gamified public-speaking trainer. Single Flutter package (no monorepo), light-theme Material 3 app backed by a REST API at `https://tvoxlab.tech/api/v1` (`lib/core/constants/app_constants.dart`). UI copy is Spanish.
 
 ## Commands
 
@@ -41,7 +41,7 @@ After touching `lib/domain/models/*` (freezed/json_serializable): codegen -> ana
 Layers, dependencies point inward:
 
 - `lib/core/` — theme, go_router setup, dio network client (+ auth interceptor), secure storage
-- `lib/domain/` — freezed models, repository interfaces (`i_*`), usecases
+- `lib/domain/` — freezed models, repository interfaces (`i_*`); no Riverpod here
 - `lib/data/` — dio services per endpoint + repository impls
 - `lib/presentation/features/<feature>/` — screens/widgets per feature; cross-feature Riverpod state lives in `presentation/shared/providers/`
 
@@ -49,7 +49,7 @@ Non-obvious wiring:
 
 - All route paths in one place: `core/router/routes.dart`. Tabs: `/map` (Aprender), `/practice`, `/analyze`, `/profile` — all inside the `ShellRoute` with `app_shell.dart` bottom `NavigationBar`. There is no `/home` route anymore.
 - **Authentication is mandatory**: `AuthGuard.check` redirects every unauthenticated navigation to `/auth-wall` (no guest mode). Splash sends unauthenticated users to the wall; logout lands there too.
-- Progression is **local-only**: points/completed exercises persist through `data/local/local_progress_store.dart` (JSON blob in secure storage). There is no progress endpoint anymore — do not reintroduce server-side progress calls.
+- Progression is **local-only**: points/completed exercises persist through `data/local/local_progress_store.dart` (JSON blob in secure storage). There is no progress endpoint anymore — do not reintroduce server-side progress calls. `ProgressNotifier` watches the signed-in user id from `authProvider` and reloads that user's entries; auth code never touches progress directly.
 - Exercise types (reading/quiz/writing/oratory) are dispatched by `presentation/shared/widgets/exercise_widget_factory.dart` — add new exercise types there. Type labels/icons helpers live in `utils/exercise_name_utils.dart`. Exercises complete with an `ExerciseOutcome` (score + optional `SessionResult`).
 - Writing exercises call the backend AI (`POST /exercises/analyze-text`, see `data/remote/services/analyzer_service.dart`) and complete with the real AI score; on analyzer failure they degrade to the heuristic points. Quiz/reading/oratory have no AI endpoint yet (heuristic `SessionResultBuilder.fromScore`) — backend gaps are marked with `TODO(backend)` comments.
 - Session results screen consumes `domain/models/session_result.dart`. `SessionResult.fromJson` maps the analyzer envelope (`{success, data: {score, score_breakdown, feedback,...}}`); `SessionResultBuilder.fromScore` is the offline fallback — do not scatter fallback logic across UI.

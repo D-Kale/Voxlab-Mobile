@@ -1,17 +1,29 @@
-# voxlab
+# Voxlab
 
-A new Flutter project.
+Gamified public-speaking trainer built with Flutter. Users follow a learning
+path of reading, quiz, writing and oratory exercises, earn XP, and get
+AI feedback on writing exercises from the Voxlab backend.
 
-## Getting Started
+## Run
 
-This project is a starting point for a Flutter application.
+```sh
+flutter pub get
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
+The app talks to `https://tvoxlab.tech/api/v1` by default. To use a local
+backend:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```sh
+flutter run --dart-define=API_BASE_URL=http://<host>:3000/api/v1
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Develop
+
+```sh
+dart run build_runner build --delete-conflicting-outputs   # after editing lib/domain/models
+flutter analyze
+flutter test
+```
+
+See [AGENTS.md](AGENTS.md) for architecture, conventions and testing notes.
