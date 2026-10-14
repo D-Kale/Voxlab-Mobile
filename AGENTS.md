@@ -11,7 +11,10 @@ flutter pub get
 dart run build_runner build --delete-conflicting-outputs   # codegen
 flutter analyze
 flutter test            # single file: flutter test test/widget_test.dart
+flutter run -t lib/main_demo.dart   # offline demo: signed-in user, fixture content
 ```
+
+`lib/main_demo.dart` overrides the auth/content/storage providers with `lib/dev/demo_data.dart`, so every screen can be reviewed without a backend account. Never import `lib/dev/` from production code.
 
 After touching `lib/domain/models/*` (freezed/json_serializable): codegen -> analyze -> test, in that order.
 
@@ -19,6 +22,7 @@ After touching `lib/domain/models/*` (freezed/json_serializable): codegen -> ana
 
 - `test/tabs_smoke_test.dart` renders **every tab** (mapa, práctica, analizar, perfil) with fixture providers at 390x844 and 320x700, asserting no layout exception and checking real content/logic (filtering, empty states, no raw type strings). Run it after touching any screen: it is what catches responsive overflows.
 - `test/golden/tab_screens_golden_test.dart` captures the full tab screens for design review; read the PNGs from `test/golden/goldens/` when changing shared styles.
+- Tests call `useReducedMotion(tester)` (`test/golden/golden_fonts.dart`) before pumping. Decorative loops (`Bob`, `PulseHalo`) never settle, so without it `pumpAndSettle` times out; with it they render their static frame and goldens stay deterministic. Do the same in any new widget test that renders the mascot or the map.
 - Provider overrides needed for those tests: `tracksProvider` (fixtures), `progressNotifierProvider` (fake notifier with `List<Progress> build()`), `authProvider` (a real `AuthNotifier` built with fake repo/storage/api — its constructor requires non-null dependencies).
 - `test/fixtures/map_fixtures.dart` must build `ExerciseContent` matching the exercise `type`: screens derive filter chips and XP from the parsed content, not the raw string.
 
@@ -26,7 +30,7 @@ After touching `lib/domain/models/*` (freezed/json_serializable): codegen -> ana
 
 - `flutter test` passes (smoke test + auth widget tests).
 - `flutter analyze` reports ~70 info-level issues as baseline (strict lint set in `analysis_options.yaml`). Match the lints on new code; don't mass-reformat unrelated files.
-- **Mapa unificado** (Fase 3): `/track`, `/module`, `/lesson` routes eliminados; `TrackDetail`/`ModuleDetail`/`LessonList` pantallas borradas; tap en nodo de lección va directo al primer ejercicio pendiente; píldora UNIDAD es header sin navegación; scroll automático al nodo actual al cargar.
+- **Mapa unificado** (Fase 3): `/track`, `/module`, `/lesson` routes eliminados; `TrackDetail`/`ModuleDetail`/`LessonList` pantallas borradas; tap en un nodo abre un popover anclado con EMPEZAR/REPASAR; scroll automático al nodo actual al cargar.
 - **Errores user-friendly** (Fase 1): ErrorView con mensajes totales en español, `main.dart` con fallback styled en release, `friendlyErrorMessage()` centralizado.
 - **Registro defensivo** (Fase 2): `_parseAuthResponse` tolerante + error amigable, catch visible en banner, validador de email estricto, tests de registro con fake repo (4 casos).
 - Para desarrollo local con Docker: `cd backend && docker compose up -d backend`, luego `flutter run --dart-define=API_BASE_URL=http://<ip-pc>:3000/api/v1` (o `adb reverse tcp:3000 tcp:3000` + `127.0.0.1`). `usesCleartextTraffic="true"` habilitado en AndroidManifest para http://.
@@ -53,18 +57,28 @@ Non-obvious wiring:
 - Exercise types (reading/quiz/writing/oratory) are dispatched by `presentation/shared/widgets/exercise_widget_factory.dart` — add new exercise types there. Type labels/icons helpers live in `utils/exercise_name_utils.dart`. Exercises complete with an `ExerciseOutcome` (score + optional `SessionResult`).
 - Writing exercises call the backend AI (`POST /exercises/analyze-text`, see `data/remote/services/analyzer_service.dart`) and complete with the real AI score; on analyzer failure they degrade to the heuristic points. Quiz/reading/oratory have no AI endpoint yet (heuristic `SessionResultBuilder.fromScore`) — backend gaps are marked with `TODO(backend)` comments.
 - Session results screen consumes `domain/models/session_result.dart`. `SessionResult.fromJson` maps the analyzer envelope (`{success, data: {score, score_breakdown, feedback,...}}`); `SessionResultBuilder.fromScore` is the offline fallback — do not scatter fallback logic across UI.
-- Reusable design components live in `presentation/shared/widgets/` (`ScoreRing`, `SkillBar` + `scoreColor()`, `InsightCard`, `PillBadge`, `FeedbackBanner`). Prefer them over hand-rolling rings/bars/badges.
+- Reusable design components live in `presentation/shared/widgets/` — see "Design system" below. Prefer them over hand-rolling cards, buttons, tags or bars.
 
 ## Theme / design system
 
-Single source: `core/constants/app_theme.dart` (`AppTheme.light`, `useMaterial3: true`) + `core/constants/app_colors.dart`. VoxLab warm palette: orange background `#F4A221`, intense red accent/borders `#D93B27`, dark brown text `#5C3A21`, success green `#3ECF6E`, white surfaces. Fonts: DM Sans via google_fonts, **bundled in `assets/fonts/`** (see Fonts below). Always consume theme colors/components — no hardcoded hexes (the only sanctioned exceptions live inside map widgets, e.g. the white connector dashes).
+Single source: `core/constants/app_theme.dart` (`AppTheme.light`, `useMaterial3: true`) + `core/constants/app_colors.dart`. VoxLab warm palette: orange background `#F4A221`, intense red accent `#D93B27`, dark brown text `#5C3A21`, success green `#3ECF6E`, white surfaces. Each brand color has a darker "lip" shade (`primaryDark`, `accentRedDark`, `successDark`, `darkBrownDeep`); white cards use `cardBorder` + `cardLip`; idle map nodes `idleFace`/`idleLip`; rewards `gold`/`goldDark`. Fonts: DM Sans via google_fonts, **bundled in `assets/fonts/`** (see Fonts below). Always consume theme colors/components — no hardcoded hexes (the only sanctioned exceptions live inside map widgets, e.g. the white road).
 
-## Map path (FASE 3 + redesign)
+### Design system (Duolingo-style)
 
-- `features/map/widgets/map_geometry.dart` is the **single source of layout math** (`nodeDiameter`, `nodeSpacing`, `amplitude`, `labelZone`, `centers()`, `height()`). Layout (`Positioned` nodes) and painting (`PathConnectorPainter`) both consume it — never position nodes with `Transform`/`Column` stacking or hand-rolled math, that is what previously made connector lines drift away from nodes and overflow unit headers.
-- Nodes are rendered inside a `Stack` sized by `MapGeometry.height()`; the painter receives the same centers plus `nodeRadius`.
-- `PathNodeState` styling: completed = green border + check badge, current = red border + glow + voxi badge + name label (only the current node is labelled), pending = white node, muted brown border/icon. **No lock icons** (MVP: no gating).
-- `UnitBanner` is a horizontal banner (number badge + full title); its border/shadow follow the unit state (green when completed, red otherwise). Tapping a banner scrolls to that unit's first node.
+- `chunky.dart`: `ChunkyButton` (3D push button, labels in UPPERCASE), `ChunkyCard` (white or colored face over a darker lip; pass `onTap` to make it sink on press), `ChunkyTag` (type/XP/status pill), `ChunkyColors` presets (`red`, `green`, `brown`, `orange`, `gold`, `white`, `idle`), `Pressable` for custom 3D surfaces.
+- `exercise_type_style.dart`: one color + filled icon per exercise type (reading orange, quiz red, writing green, oratory brown) and `ink` for text on a light tint. Use it everywhere a type is shown.
+- `motion.dart`: `EntranceAnimation` (+ `stagger(i)`), `Bob`, `PulseHalo`, `ConfettiBurst`. All honor `MediaQuery.disableAnimations` and use no timers.
+- `lesson_widgets.dart`: lesson background (cream), `VoxiSays` (mascot + speech bubble prompt), `LessonProgressBar`, `AnswerFeedbackPanel`.
+- `tab_header.dart`, `stat_tile.dart`, `top_stats_bar.dart` (streak/XP/completed bar on the map), `xp_bar.dart`, `skill_bar.dart`.
+- Tabs use the orange background with a `TabHeader`; exercise screens use the cream lesson background with their own top bar (close, type badge, name, XP). The bottom bar is the custom `_NavItem` row in `core/router/app_shell.dart`.
+
+## Map path
+
+- `features/map/widgets/map_path_model.dart` derives the path from tracks + completed ids (`MapPathModel.build`): one `PathUnit` per module, one global current node (the first incomplete exercise across all tracks), unit colors rotating red/green/brown. Keep logic there, not in widgets.
+- `features/map/widgets/map_geometry.dart` is the **single source of layout math** (`nodeDiameter`, `nodeDepth`, `nodeSpacing`, `topInset`, `bottomInset`, `amplitude`, `centers()`, `height()`). Layout (`Positioned` nodes) and painting (`PathConnectorPainter`) both consume it — never position nodes with `Transform`/`Column` stacking or hand-rolled math.
+- `track_path.dart::buildMapSlivers` returns per unit a `SliverMainAxisGroup` with a pinned `UnitHeader` (stays on top while its unit scrolls) and a `UnitPathSection` (`Stack` sized by `MapGeometry.height(unit.slotCount)`; every unit ends with a trophy node, so `slotCount = exercises + 1`).
+- Node styling: completed = unit color + check, current = unit color + type icon + unit-progress ring + pulse + floating EMPEZAR bubble, pending = cream idle node. Trophy turns gold when the unit is done. **No lock icons** (MVP: no gating).
+- Tapping a node opens `showLessonPopover` (anchored card with EMPEZAR +XP / REPASAR); the header's book icon opens `showUnitGuide`. Voxi sits beside the widest swing of each unit (asleep on units ahead).
 
 ## Fonts and golden tests
 
@@ -75,7 +89,7 @@ Single source: `core/constants/app_theme.dart` (`AppTheme.light`, `useMaterial3:
   - the first testWidgets run that uses a heavy weight lays text out before the font resolves and renders blocky fallback glyphs — keep the `warm up text pipeline` first test.
 - Capture goldens on `find.byType(MaterialApp)` (full screen): capturing the widget alone composites its transparent background onto white and hides white-on-orange details.
 - Call `settleImages(tester)` before every `expectLater`: `pumpAndSettle` drains frames but not the real async asset decode, so the first test of a run captures blank images. The Voxi mascot PNGs are also cropped to a tight 512x512 square, otherwise they render as an invisible smudge at 24-48px.
-- Regenerate with `flutter test test/golden --update-goldens`. Map states covered: fresh / mid / all completed / narrow (320px).
+- Regenerate with `flutter test test/golden --update-goldens`. Map states covered: fresh / mid / all completed / narrow (320px). Goldens are rendered on macOS; small pixel differences on other machines are expected, so regenerate locally before comparing.
 
 ## Direction (decided by product owner)
 
