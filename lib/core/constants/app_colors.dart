@@ -41,6 +41,25 @@ class AppColors {
 
   static const error = Color(0xFFD93B27); // Intense Red
 
+  // 3D depth ("lip") shades: the darker band under chunky buttons, cards and
+  // map nodes. Each one is the matching brand color pushed darker.
+  static const primaryDark = Color(0xFFD9860F);
+  static const accentRedDark = Color(0xFFA8301F);
+  static const successDark = Color(0xFF2CA65A);
+  static const darkBrownDeep = Color(0xFF3D2614);
+
+  // White cards sitting on the orange background.
+  static const cardBorder = Color(0xFFF2DFC4);
+  static const cardLip = Color(0xFFE0B87E);
+
+  // Not-yet-started map nodes and neutral chips.
+  static const idleFace = Color(0xFFFFF4E2);
+  static const idleLip = Color(0xFFE6C597);
+
+  // Trophies and rewards.
+  static const gold = Color(0xFFFFC83D);
+  static const goldDark = Color(0xFFE09E00);
+
   // =========================================================================
   // BACKWARD-COMPATIBLE ALIASES (for existing UI code - DO NOT REMOVE)
   // These map old Duolingo-style color names to new VoxLab palette
