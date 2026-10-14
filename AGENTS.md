@@ -33,6 +33,7 @@ After touching `lib/domain/models/*` (freezed/json_serializable): codegen -> ana
 - **Mapa unificado** (Fase 3): `/track`, `/module`, `/lesson` routes eliminados; `TrackDetail`/`ModuleDetail`/`LessonList` pantallas borradas; tap en un nodo abre un popover anclado con EMPEZAR/REPASAR; scroll automático al nodo actual al cargar.
 - **Errores user-friendly** (Fase 1): ErrorView con mensajes totales en español, `main.dart` con fallback styled en release, `friendlyErrorMessage()` centralizado.
 - **Registro defensivo** (Fase 2): `_parseAuthResponse` tolerante + error amigable, catch visible en banner, validador de email estricto, tests de registro con fake repo (4 casos).
+- **iOS**: needs Xcode + CocoaPods (`brew install cocoapods`; `flutter_secure_storage` 9.x has no Swift Package Manager support). `ios/Podfile` and `Podfile.lock` are committed; run CocoaPods with `LANG=en_US.UTF-8`. Info.plist allows `NSAllowsLocalNetworking` so a local http backend works in the simulator; the launch screen is brand orange and the app icon is generated from `assets/images/voxi_logo.png`.
 - Para desarrollo local con Docker: `cd backend && docker compose up -d backend`, luego `flutter run --dart-define=API_BASE_URL=http://<ip-pc>:3000/api/v1` (o `adb reverse tcp:3000 tcp:3000` + `127.0.0.1`). `usesCleartextTraffic="true"` habilitado en AndroidManifest para http://.
 
 ## Codegen facts
