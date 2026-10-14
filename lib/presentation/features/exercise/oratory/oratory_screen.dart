@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -49,7 +50,8 @@ class OratoryWidget extends ConsumerStatefulWidget {
 
 enum _Phase { preparation, permission, active, analyzing, summary }
 
-class _OratoryWidgetState extends ConsumerState<OratoryWidget> {
+class _OratoryWidgetState extends ConsumerState<OratoryWidget>
+    with WidgetsBindingObserver {
   static const _meterBars = 28;
 
   _Phase _phase = _Phase.preparation;
@@ -67,12 +69,42 @@ class _OratoryWidgetState extends ConsumerState<OratoryWidget> {
   SpeechMetrics? _metrics;
   bool _analyzedByAi = false;
 
+  /// The finished take, kept so a failed AI analysis can be retried.
+  SpeechRecording? _take;
+  bool _aiFailed = false;
+
+  /// Shorter takes are not worth an upload: on-device metrics only.
+  static const _minAiSeconds = 3;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     _levelSub?.cancel();
     _recorder?.dispose();
+    _deleteTake();
     super.dispose();
+  }
+
+  /// Going to the background (a call, the home button) interrupts the
+  /// microphone: close the take with what was recorded so far.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused && _phase == _Phase.active) {
+      _finish();
+    }
+  }
+
+  void _deleteTake() {
+    final path = _take?.path;
+    if (kIsWeb || path == null) return;
+    unawaited(File(path).delete().then((_) {}, onError: (_) {}));
   }
 
   Future<void> _requestAndStart() async {
@@ -158,45 +190,72 @@ class _OratoryWidgetState extends ConsumerState<OratoryWidget> {
       return;
     }
 
-    var metrics = take.metrics;
-    var result = SessionResultBuilder.fromSpeech(
+    _take = take;
+    final metrics = take.metrics;
+    final local = SessionResultBuilder.fromSpeech(
       metrics,
       targetSeconds: widget.durationSeconds,
       minSeconds: widget.minDurationSeconds,
     );
-    var byAi = false;
-    final path = take.path;
-    if (!kIsWeb && path != null && metrics.hasSpeech) {
-      try {
-        final json = await ref
-            .read(analyzerServiceProvider)
-            .analyzeSpeech(
-              path: path,
-              fileName: take.fileName,
-              minSeconds: widget.minDurationSeconds,
-              targetSeconds: widget.durationSeconds,
-            );
-        final data = json['data'] as Map<String, dynamic>? ?? json;
-        result = SessionResult.fromJson(json);
-        metrics = metrics.copyWith(
+    final canUseAi =
+        !kIsWeb &&
+        take.path != null &&
+        metrics.hasSpeech &&
+        metrics.duration.inSeconds >= _minAiSeconds;
+    if (!mounted) return;
+    setState(() {
+      _metrics = metrics;
+      _result = local;
+      _analyzedByAi = false;
+    });
+    if (canUseAi) {
+      await _analyzeWithAi();
+    } else {
+      _deleteTake();
+    }
+    if (mounted) setState(() => _phase = _Phase.summary);
+  }
+
+  /// Sends the take to the speech AI. On success the AI result replaces the
+  /// on-device one; on failure the on-device result stays and the summary
+  /// offers a retry.
+  Future<void> _analyzeWithAi() async {
+    final take = _take;
+    final path = take?.path;
+    if (take == null || path == null) return;
+    try {
+      final json = await ref
+          .read(analyzerServiceProvider)
+          .analyzeSpeech(
+            path: path,
+            fileName: take.fileName,
+            minSeconds: widget.minDurationSeconds,
+            targetSeconds: widget.durationSeconds,
+            topic: widget.topic,
+          );
+      final data = json['data'] as Map<String, dynamic>? ?? json;
+      if (!mounted) return;
+      setState(() {
+        _result = SessionResult.fromJson(json);
+        _metrics = take.metrics.copyWith(
           fillerWords: (data['filler_words'] as num?)?.toInt(),
           wordsPerMinute: (data['words_per_minute'] as num?)?.toInt(),
           transcript: data['transcript'] as String?,
         );
-        byAi = true;
-      } catch (e) {
-        // Speech AI unreachable: keep the on-device analysis.
-        debugPrint('Speech AI unavailable, using on-device metrics: $e');
-      }
+        _analyzedByAi = true;
+        _aiFailed = false;
+      });
+      _deleteTake();
+    } catch (e) {
+      debugPrint('Speech AI unavailable, using on-device metrics: $e');
+      if (mounted) setState(() => _aiFailed = true);
     }
+  }
 
-    if (!mounted) return;
-    setState(() {
-      _metrics = metrics;
-      _result = result;
-      _analyzedByAi = byAi;
-      _phase = _Phase.summary;
-    });
+  Future<void> _retryAi() async {
+    setState(() => _phase = _Phase.analyzing);
+    await _analyzeWithAi();
+    if (mounted) setState(() => _phase = _Phase.summary);
   }
 
   double get _progress => widget.durationSeconds == 0
@@ -598,6 +657,10 @@ class _OratoryWidgetState extends ConsumerState<OratoryWidget> {
                   ),
                   const SizedBox(height: 14),
                   _MetricsGrid(metrics: metrics),
+                  if (result?.aiFeedback != null) ...[
+                    const SizedBox(height: 12),
+                    AiCoachCard(text: result!.aiFeedback!),
+                  ],
                   if (result != null && result.tips.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     for (final tip in result.tips.take(2))
@@ -666,6 +729,16 @@ class _OratoryWidgetState extends ConsumerState<OratoryWidget> {
             ),
           ),
         ),
+        if (_aiFailed && !_analyzedByAi)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: ChunkyButton(
+              label: 'REINTENTAR CON IA',
+              icon: Icons.auto_awesome_rounded,
+              colors: ChunkyColors.white,
+              onPressed: _retryAi,
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.only(top: 8, bottom: 16),
           child: ChunkyButton(

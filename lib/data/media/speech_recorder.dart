@@ -61,11 +61,18 @@ class RecordSpeechRecorder implements SpeechRecorder {
         : '${(await getTemporaryDirectory()).path}/$_fileName';
 
     await _recorder.start(
+      // Whisper resamples everything to 16 kHz mono, so recording at that
+      // rate loses nothing and makes the upload ~3x smaller (a 1-minute
+      // AAC take is ~240 KB).
       RecordConfig(
         encoder: encoder,
-        sampleRate: 44100,
+        sampleRate: 16000,
         numChannels: 1,
-        bitRate: 64000,
+        bitRate: 32000,
+        // Lowers background noise and keeps the voice level steady, which
+        // also helps the on-device pause detection.
+        noiseSuppress: true,
+        autoGain: true,
       ),
       path: path,
     );

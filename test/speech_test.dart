@@ -88,10 +88,14 @@ class _FakePermissions extends MediaPermissions {
 }
 
 class _FakeAnalyzer extends AnalyzerService {
-  _FakeAnalyzer({this.response}) : super(Dio());
+  _FakeAnalyzer({this.response, this.failures = 0}) : super(Dio());
 
   final Map<String, dynamic>? response;
+
+  /// Calls that fail before [response] is returned.
+  final int failures;
   int calls = 0;
+  String? lastTopic;
 
   @override
   Future<Map<String, dynamic>> analyzeSpeech({
@@ -99,12 +103,37 @@ class _FakeAnalyzer extends AnalyzerService {
     required String fileName,
     int? minSeconds,
     int? targetSeconds,
+    String? topic,
   }) async {
     calls++;
-    if (response == null) throw DioException(requestOptions: RequestOptions());
+    lastTopic = topic;
+    if (response == null || calls <= failures) {
+      throw DioException(requestOptions: RequestOptions());
+    }
     return response!;
   }
 }
+
+const _aiResponse = {
+  'success': true,
+  'data': {
+    'transcript': 'Hola, eh, les cuento sobre mi ciudad.',
+    'words_per_minute': 132,
+    'filler_words': 3,
+    'score': 78,
+    'score_breakdown': {
+      'muletillas': {
+        'score': 55,
+        'weight': 0.25,
+        'feedbacks': ['Usaste 3 muletillas.'],
+      },
+      'ritmo': {'score': 100, 'weight': 0.25, 'feedbacks': []},
+    },
+    'feedback': ['Cerrá con una idea fuerte.', 'Buen ritmo'],
+    'ai_feedback': 'Cerrá con una idea fuerte.',
+    'ai_model': 'google/gemma-4-31b-it:free',
+  },
+};
 
 void main() {
   setUpAll(loadGoldenFonts);
@@ -213,13 +242,17 @@ void main() {
       return outcomes;
     }
 
-    Future<void> recordAndFinish(WidgetTester tester) async {
+    Future<void> recordAndFinish(
+      WidgetTester tester, {
+      bool expectLevels = true,
+    }) async {
+      recorderLevelsSeen = 0;
       await tester.tap(find.text('GRABAR'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       expect(find.text('Grabando'), findsOneWidget);
       // The live meter consumed the levels without errors.
-      expect(recorderLevelsSeen, greaterThan(0));
+      if (expectLevels) expect(recorderLevelsSeen, greaterThan(0));
       expect(tester.takeException(), isNull);
       await tester.tap(find.text('TERMINÉ'));
       // The analysis is a chain of fake futures; give it a few frames.
@@ -233,26 +266,7 @@ void main() {
     }
 
     testWidgets('uses the speech AI result when it answers', (tester) async {
-      final analyzer = _FakeAnalyzer(
-        response: {
-          'success': true,
-          'data': {
-            'transcript': 'Hola, eh, les cuento sobre mi ciudad.',
-            'words_per_minute': 132,
-            'filler_words': 3,
-            'score': 78,
-            'score_breakdown': {
-              'muletillas': {
-                'score': 55,
-                'weight': 0.25,
-                'feedbacks': ['Usaste 3 muletillas.'],
-              },
-              'ritmo': {'score': 100, 'weight': 0.25, 'feedbacks': []},
-            },
-            'feedback': ['Buen ritmo'],
-          },
-        },
-      );
+      final analyzer = _FakeAnalyzer(response: _aiResponse);
       final outcomes = await pumpOratory(
         tester,
         access: MediaAccess.granted,
@@ -261,7 +275,12 @@ void main() {
       await recordAndFinish(tester);
 
       expect(analyzer.calls, 1);
+      expect(analyzer.lastTopic, 'Mi ciudad');
       expect(find.text('Analizado con IA'), findsOneWidget);
+      // The coach tip is shown once, in its own card.
+      expect(find.text('TU COACH IA'), findsOneWidget);
+      expect(find.text('Cerrá con una idea fuerte.'), findsOneWidget);
+      expect(find.text('REINTENTAR CON IA'), findsNothing);
       expect(find.text('132'), findsOneWidget);
       expect(find.text('3'), findsOneWidget);
       expect(
@@ -291,6 +310,44 @@ void main() {
       await tester.ensureVisible(find.text('CONTINUAR'));
       await tester.tap(find.text('CONTINUAR'));
       expect(outcomes.single.sessionResult, isNotNull);
+      expect(outcomes.single.sessionResult!.byAi, isFalse);
+    });
+
+    testWidgets('a failed AI analysis can be retried', (tester) async {
+      final analyzer = _FakeAnalyzer(response: _aiResponse, failures: 1);
+      await pumpOratory(
+        tester,
+        access: MediaAccess.granted,
+        analyzer: analyzer,
+      );
+      await recordAndFinish(tester);
+
+      expect(find.text('Análisis en el dispositivo'), findsOneWidget);
+      await tester.ensureVisible(find.text('REINTENTAR CON IA'));
+      await tester.tap(find.text('REINTENTAR CON IA'));
+      for (
+        var i = 0;
+        i < 20 && find.text('Analizado con IA').evaluate().isEmpty;
+        i++
+      ) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(analyzer.calls, 2);
+      expect(find.text('Analizado con IA'), findsOneWidget);
+      expect(find.text('REINTENTAR CON IA'), findsNothing);
+    });
+
+    testWidgets('silent take skips the AI upload', (tester) async {
+      final analyzer = _FakeAnalyzer(response: _aiResponse);
+      await pumpOratory(
+        tester,
+        access: MediaAccess.granted,
+        analyzer: analyzer,
+        recorder: _FakeRecorder(List.filled(300, -60)),
+      );
+      await recordAndFinish(tester, expectLevels: false);
+      expect(analyzer.calls, 0);
+      expect(find.text('REINTENTAR CON IA'), findsNothing);
     });
 
     testWidgets('denied microphone offers practice without recording', (
