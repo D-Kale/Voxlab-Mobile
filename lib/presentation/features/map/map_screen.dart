@@ -14,6 +14,7 @@ import '../../shared/widgets/top_stats_bar.dart';
 import '../../shared/widgets/voxi_state.dart';
 import '../tour/app_tour.dart';
 import 'widgets/map_path_model.dart';
+import 'widgets/map_scenery.dart';
 import 'widgets/track_path.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
@@ -129,50 +130,61 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           children: [
             TopStatsBar(spotlightKey: TourKeys.statsBar),
             Expanded(
-              child: RefreshIndicator(
-                color: AppColors.accentRed,
-                backgroundColor: Colors.white,
-                onRefresh: () async {
-                  await ref.read(authProvider.notifier).refreshUser();
-                  ref.invalidate(tracksProvider);
-                  await ref.read(progressNotifierProvider.notifier).reload();
-                },
-                child: tracksAsync.when(
-                  data: (tracks) {
-                    final model = MapPathModel.build(tracks, completed);
-                    _scheduleScrollToCurrent();
-                    return CustomScrollView(
-                      controller: _scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      slivers: [
-                        ...buildMapSlivers(
-                          model: model,
-                          currentKey: _currentKey,
-                          onStart: _start,
-                          onGuide: (unit) => showUnitGuide(
-                            context,
-                            unit: unit,
-                            onStart: _start,
-                          ),
-                        ),
-                        const SliverToBoxAdapter(child: SizedBox(height: 32)),
-                      ],
-                    );
-                  },
-                  loading: () => const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: LoadingSkeleton(itemCount: 3),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: MapParallaxBackdrop(controller: _scrollController),
                   ),
-                  error: (err, _) => ErrorView(
-                    error: err,
-                    onRetry: () {
+                  RefreshIndicator(
+                    color: AppColors.accentRed,
+                    backgroundColor: Colors.white,
+                    onRefresh: () async {
+                      await ref.read(authProvider.notifier).refreshUser();
                       ref.invalidate(tracksProvider);
-                      ref.read(progressNotifierProvider.notifier).reload();
+                      await ref
+                          .read(progressNotifierProvider.notifier)
+                          .reload();
                     },
-                    showVoxi: true,
-                    voxiState: VoxiState.awake,
+                    child: tracksAsync.when(
+                      data: (tracks) {
+                        final model = MapPathModel.build(tracks, completed);
+                        _scheduleScrollToCurrent();
+                        return CustomScrollView(
+                          controller: _scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          slivers: [
+                            ...buildMapSlivers(
+                              model: model,
+                              currentKey: _currentKey,
+                              onStart: _start,
+                              onGuide: (unit) => showUnitGuide(
+                                context,
+                                unit: unit,
+                                onStart: _start,
+                              ),
+                            ),
+                            const SliverToBoxAdapter(
+                              child: SizedBox(height: 32),
+                            ),
+                          ],
+                        );
+                      },
+                      loading: () => const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: LoadingSkeleton(itemCount: 3),
+                      ),
+                      error: (err, _) => ErrorView(
+                        error: err,
+                        onRetry: () {
+                          ref.invalidate(tracksProvider);
+                          ref.read(progressNotifierProvider.notifier).reload();
+                        },
+                        showVoxi: true,
+                        voxiState: VoxiState.awake,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ],

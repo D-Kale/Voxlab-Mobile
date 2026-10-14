@@ -108,8 +108,13 @@ void main() {
 
   testWidgets('renders without overflow or layout exceptions',
       (tester) async {
-    await pumpMap(tester, completed: const {'e1'});
+    await pumpMap(
+      tester,
+      completed: const {'e1'},
+      surface: const Size(390, 2200),
+    );
     expect(tester.takeException(), isNull);
+    expect(find.text('NIVEL 1 · PRADERA'), findsOneWidget);
     expect(find.text('UNIDAD 1'), findsOneWidget);
     expect(find.text('UNIDAD 2'), findsOneWidget);
   });

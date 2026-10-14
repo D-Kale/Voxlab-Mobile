@@ -2,6 +2,7 @@ import '../../../../domain/models/exercise.dart';
 import '../../../../domain/models/module.dart';
 import '../../../../domain/models/track.dart';
 import '../../../shared/widgets/chunky.dart';
+import 'map_scenery.dart';
 
 /// Completed and current exercises can be opened; locked ones cannot until
 /// every exercise before them is done (same rule as `unlockedExerciseIds`).
@@ -24,6 +25,8 @@ class PathUnit {
   const PathUnit({
     required this.trackIndex,
     required this.trackTitle,
+    required this.levelNumber,
+    required this.biome,
     required this.unitNumber,
     required this.module,
     required this.nodes,
@@ -33,6 +36,12 @@ class PathUnit {
 
   final int trackIndex;
   final String trackTitle;
+
+  /// 1-based level (track) this unit belongs to; empty tracks are skipped.
+  final int levelNumber;
+
+  /// Landscape drawn around the unit, shared by every unit of the level.
+  final MapBiome biome;
 
   /// 1-based position of the unit inside its track.
   final int unitNumber;
@@ -58,14 +67,44 @@ class PathUnit {
   int get slotCount => nodes.length + 1;
 }
 
+enum LevelState { completed, current, locked }
+
+/// One track of the path, shown as a "level" with its own landscape.
+class PathLevel {
+  const PathLevel({
+    required this.number,
+    required this.title,
+    required this.description,
+    required this.biome,
+    required this.units,
+  });
+
+  final int number;
+  final String title;
+  final String description;
+  final MapBiome biome;
+  final List<PathUnit> units;
+
+  int get exerciseCount => units.fold(0, (sum, u) => sum + u.nodes.length);
+
+  int get doneCount => units.fold(0, (sum, u) => sum + u.doneCount);
+
+  LevelState get state => doneCount == exerciseCount
+      ? LevelState.completed
+      : units.any((u) => u.hasCurrent)
+      ? LevelState.current
+      : LevelState.locked;
+}
+
 /// Pure path derivation from content and progress; no widgets.
 ///
 /// The current node is the first incomplete exercise across every track, so
 /// there is exactly one "EMPEZAR" call-out on the whole map.
 class MapPathModel {
-  const MapPathModel(this.units);
+  const MapPathModel(this.units, [this.levels = const []]);
 
   final List<PathUnit> units;
+  final List<PathLevel> levels;
 
   static const _unitPalette = [
     ChunkyColors.red,
@@ -75,6 +114,7 @@ class MapPathModel {
 
   factory MapPathModel.build(List<Track> tracks, Set<String> completed) {
     final units = <PathUnit>[];
+    final levels = <PathLevel>[];
     var foundCurrent = false;
     var globalIndex = 0;
 
@@ -82,6 +122,10 @@ class MapPathModel {
       final modules = tracks[t].modules
           .where((m) => m.lessons.any((l) => l.exercises.isNotEmpty))
           .toList();
+      if (modules.isEmpty) continue;
+      final levelNumber = levels.length + 1;
+      final biome = MapBiome.forLevel(levelNumber);
+      final levelUnits = <PathUnit>[];
       for (var m = 0; m < modules.length; m++) {
         final nodes = <PathExerciseNode>[];
         for (final lesson in modules[m].lessons) {
@@ -104,20 +148,31 @@ class MapPathModel {
             );
           }
         }
-        units.add(
-          PathUnit(
-            trackIndex: t,
-            trackTitle: tracks[t].title,
-            unitNumber: m + 1,
-            module: modules[m],
-            nodes: nodes,
-            globalStartIndex: globalIndex,
-            colors: _unitPalette[units.length % _unitPalette.length],
-          ),
+        final unit = PathUnit(
+          trackIndex: t,
+          trackTitle: tracks[t].title,
+          levelNumber: levelNumber,
+          biome: biome,
+          unitNumber: m + 1,
+          module: modules[m],
+          nodes: nodes,
+          globalStartIndex: globalIndex,
+          colors: _unitPalette[units.length % _unitPalette.length],
         );
+        units.add(unit);
+        levelUnits.add(unit);
         globalIndex += nodes.length + 1;
       }
+      levels.add(
+        PathLevel(
+          number: levelNumber,
+          title: tracks[t].title,
+          description: tracks[t].description,
+          biome: biome,
+          units: levelUnits,
+        ),
+      );
     }
-    return MapPathModel(units);
+    return MapPathModel(units, levels);
   }
 }

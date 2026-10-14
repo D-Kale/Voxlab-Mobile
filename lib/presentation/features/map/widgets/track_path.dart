@@ -8,15 +8,19 @@ import '../../../shared/widgets/chunky.dart';
 import '../../../shared/widgets/exercise_type_style.dart';
 import '../../../shared/widgets/motion.dart';
 import 'lesson_popover.dart';
+import 'level_gate.dart';
 import 'map_geometry.dart';
 import 'map_path_model.dart';
+import 'map_scenery.dart';
+import '../../../shared/widgets/voxi_mood.dart';
 import 'path_connector_painter.dart';
 import 'path_lesson_node.dart';
 
 typedef StartExercise = void Function(PathExerciseNode node);
 
-/// Slivers for the whole learning path: per unit, a header that stays
-/// pinned while the unit scrolls, followed by its serpentine of nodes.
+/// Slivers for the whole learning path: per level (track), a [LevelGate]
+/// card; per unit, a header that stays pinned while the unit scrolls,
+/// followed by its serpentine of nodes in the level's landscape.
 ///
 /// [currentKey] is attached to the current node so the screen can scroll
 /// to it.
@@ -27,12 +31,19 @@ List<Widget> buildMapSlivers({
   GlobalKey? currentKey,
 }) {
   final slivers = <Widget>[];
-  int? lastTrack;
+  int? lastLevel;
   for (final unit in model.units) {
-    if (unit.trackIndex != lastTrack) {
-      lastTrack = unit.trackIndex;
+    if (unit.levelNumber != lastLevel) {
+      lastLevel = unit.levelNumber;
+      final level = model.levels
+          .where((l) => l.number == unit.levelNumber)
+          .firstOrNull;
       slivers.add(
-        SliverToBoxAdapter(child: _SectionTitle(title: unit.trackTitle)),
+        SliverToBoxAdapter(
+          child: level != null
+              ? LevelGate(level: level)
+              : _SectionTitle(title: unit.trackTitle),
+        ),
       );
     }
     slivers.add(
@@ -174,11 +185,31 @@ class UnitPathSection extends StatelessWidget {
           centers[i].dy - MapGeometry.nodeDepth / 2,
         );
 
+        final props = layoutUnitProps(
+          centers: centers,
+          width: constraints.maxWidth,
+          amplitude: MapGeometry.amplitude,
+          nodeRadius: MapGeometry.nodeRadius,
+          biome: unit.biome,
+          seed: unit.module.id * 31 + unit.globalStartIndex,
+          skipIndex: _mascotIndex(centers),
+        );
+
         return SizedBox(
           height: MapGeometry.height(unit.slotCount),
           child: Stack(
             clipBehavior: Clip.none,
             children: [
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: UnitSceneryPainter(
+                      props: props,
+                      biome: unit.biome,
+                    ),
+                  ),
+                ),
+              ),
               Positioned.fill(
                 child: IgnorePointer(
                   child: CustomPaint(
@@ -241,21 +272,28 @@ class UnitPathSection extends StatelessWidget {
 
   /// Voxi sits on the free side of the widest swing of the unit: awake and
   /// floating on units the user reached, asleep on the ones ahead.
-  List<Widget> _mascot(List<Offset> centers, double cx) {
-    var index = -1;
+  int? _mascotIndex(List<Offset> centers) {
     for (var i = 0; i < unit.nodes.length; i++) {
-      if (centers[i].dx.abs() >= MapGeometry.amplitude * 0.95) {
-        index = i;
-        break;
-      }
+      if (centers[i].dx.abs() >= MapGeometry.amplitude * 0.95) return i;
     }
-    if (index < 0) return const [];
+    return null;
+  }
+
+  List<Widget> _mascot(List<Offset> centers, double cx) {
+    final index = _mascotIndex(centers);
+    if (index == null) return const [];
     final side = centers[index].dx > 0 ? -1 : 1;
     final awake = unit.isDone || unit.hasCurrent;
+    // Celebrates finished units, cheers on the current one and sleeps on
+    // the units ahead.
+    const done = [VoxiMood.singing, VoxiMood.love, VoxiMood.laugh];
+    final mood = unit.isDone
+        ? done[unit.globalStartIndex % done.length]
+        : unit.hasCurrent
+        ? VoxiMood.happy
+        : VoxiMood.sleeping;
     final image = Image.asset(
-      awake
-          ? 'assets/images/voxi_awake.png'
-          : 'assets/images/voxi_sleeping.png',
+      mood.asset,
       width: _mascotSize,
       height: _mascotSize,
       fit: BoxFit.contain,
