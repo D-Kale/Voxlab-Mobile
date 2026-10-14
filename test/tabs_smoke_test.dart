@@ -239,6 +239,12 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(find.text('Experiencia'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Ejercicios completados'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Ejercicios completados'), findsOneWidget);
     });
 
     testWidgets('no overflow on a narrow screen', (tester) async {

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../shared/widgets/section_header.dart';
 import '../../../shared/widgets/voxi_state.dart';
+import '../../../../domain/models/lesson_status.dart';
 import '../../../../domain/models/progress.dart';
 import '../../../shared/providers/content_provider.dart';
 
@@ -18,7 +19,7 @@ class CompletedExercisesCard extends ConsumerWidget {
     final nameMap = ref.watch(exerciseNameMapProvider);
 
     final completed = progress
-        .expand((p) => p.completedExercises)
+        .where((p) => p.status == LessonStatus.completed)
         .toList();
 
     if (completed.isEmpty) return const SizedBox.shrink();
@@ -82,7 +83,7 @@ class CompletedExercisesCard extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    if (ex.score > 0)
+                    if ((ex.score ?? 0) > 0)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(

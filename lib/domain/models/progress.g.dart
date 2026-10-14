@@ -19,13 +19,6 @@ _$ProgressImpl _$$ProgressImplFromJson(Map<String, dynamic> json) =>
       startedAt: json['started_at'] == null
           ? null
           : DateTime.parse(json['started_at'] as String),
-      completedExercises:
-          (json['completedExercises'] as List<dynamic>?)
-              ?.map(
-                (e) => CompletedExercise.fromJson(e as Map<String, dynamic>),
-              )
-              .toList() ??
-          const [],
     );
 
 Map<String, dynamic> _$$ProgressImplToJson(_$ProgressImpl instance) =>
@@ -37,7 +30,6 @@ Map<String, dynamic> _$$ProgressImplToJson(_$ProgressImpl instance) =>
       'xp_earned': instance.xpEarned,
       'completed_at': instance.completedAt?.toIso8601String(),
       'started_at': instance.startedAt?.toIso8601String(),
-      'completedExercises': instance.completedExercises,
     };
 
 const _$LessonStatusEnumMap = {

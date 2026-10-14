@@ -1,6 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'lesson_status.dart';
-import 'completed_exercise.dart';
 
 part 'progress.freezed.dart';
 part 'progress.g.dart';
@@ -15,7 +14,6 @@ class Progress with _$Progress {
     @JsonKey(name: 'xp_earned') int? xpEarned,
     @JsonKey(name: 'completed_at') DateTime? completedAt,
     @JsonKey(name: 'started_at') DateTime? startedAt,
-    @Default([]) List<CompletedExercise> completedExercises,
   }) = _Progress;
 
   factory Progress.fromJson(Map<String, dynamic> json) =>
