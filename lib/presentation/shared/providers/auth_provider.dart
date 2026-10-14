@@ -7,7 +7,7 @@ import '../../../domain/models/user.dart';
 import '../../../domain/repositories/i_auth_repository.dart';
 import 'repository_providers.dart';
 
-enum AuthStatus { initial, guest, authenticated }
+enum AuthStatus { initial, unauthenticated, authenticated }
 
 class AuthState {
   const AuthState({
@@ -22,7 +22,6 @@ class AuthState {
   final String? error;
   final bool isBusy;
 
-  bool get isGuest => status == AuthStatus.guest || status == AuthStatus.initial;
   bool get isAuthenticated => status == AuthStatus.authenticated;
   bool get isLoading => isBusy;
 
@@ -58,7 +57,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final hasToken = await _storage.hasToken();
       if (!hasToken) {
-        state = state.copyWith(status: AuthStatus.guest);
+        state = const AuthState(status: AuthStatus.unauthenticated);
         return;
       }
 
@@ -67,7 +66,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (e) {
       debugPrint('AuthNotifier checkAuth error: $e');
       await _storage.clearToken().catchError((_) {});
-      state = state.copyWith(status: AuthStatus.guest);
+      state = const AuthState(status: AuthStatus.unauthenticated);
     }
   }
 
@@ -108,7 +107,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       debugPrint('AuthNotifier logout error: $e');
     }
     await _storage.clearToken();
-    state = const AuthState(status: AuthStatus.guest);
+    state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
   void clearError() {
