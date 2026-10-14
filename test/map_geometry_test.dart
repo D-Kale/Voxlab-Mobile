@@ -3,9 +3,9 @@ import 'package:voxlab/presentation/features/map/widgets/map_geometry.dart';
 
 void main() {
   group('MapGeometry.centers', () {
-    test('first node starts at the top with the node radius offset', () {
+    test('first node starts below the top inset', () {
       final centers = MapGeometry.centers(globalStartIndex: 0, count: 3);
-      expect(centers.first.dy, MapGeometry.nodeRadius);
+      expect(centers.first.dy, MapGeometry.topInset + MapGeometry.nodeRadius);
       expect(centers.first.dx, 0.0);
     });
 
@@ -32,15 +32,20 @@ void main() {
       final secondModule =
           MapGeometry.centers(globalStartIndex: 6, count: 4);
       expect(secondModule.first.dx, global[6].dx);
-      expect(secondModule.first.dy, MapGeometry.nodeRadius);
+      expect(
+        secondModule.first.dy,
+        MapGeometry.topInset + MapGeometry.nodeRadius,
+      );
     });
   });
 
   group('MapGeometry.height', () {
-    test('holds node + label zone for a single node', () {
+    test('holds the insets plus one node for a single node', () {
       expect(
         MapGeometry.height(1),
-        MapGeometry.nodeDiameter + MapGeometry.labelZone,
+        MapGeometry.topInset +
+            MapGeometry.nodeDiameter +
+            MapGeometry.bottomInset,
       );
     });
 
@@ -55,7 +60,7 @@ void main() {
       expect(MapGeometry.height(0), 0);
     });
 
-    test('every node top/label bottom fits inside the container', () {
+    test('every node fits inside the container', () {
       const count = 6;
       final centers = MapGeometry.centers(globalStartIndex: 0, count: count);
       final totalHeight = MapGeometry.height(count);
@@ -63,11 +68,9 @@ void main() {
       for (final c in centers) {
         final nodeTop = c.dy - MapGeometry.nodeRadius;
         final nodeBottom = c.dy + MapGeometry.nodeRadius;
-        expect(nodeTop, greaterThanOrEqualTo(0));
-        expect(nodeBottom, lessThan(totalHeight));
-        // Label zone must fit below the node inside the container.
+        expect(nodeTop, greaterThanOrEqualTo(MapGeometry.topInset));
         expect(
-          nodeBottom + MapGeometry.labelZone - 3,
+          nodeBottom + MapGeometry.bottomInset,
           lessThanOrEqualTo(totalHeight),
         );
       }

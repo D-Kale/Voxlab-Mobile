@@ -45,3 +45,13 @@ Future<void> settleImages(WidgetTester tester) async {
   );
   await tester.pumpAndSettle();
 }
+/// Turns on the platform "reduce motion" setting for this test.
+///
+/// Decorative loops (mascot float, current-node pulse) never settle, so
+/// `pumpAndSettle` would time out; with reduced motion they render their
+/// static frame, which also keeps goldens deterministic.
+void useReducedMotion(WidgetTester tester) {
+  tester.platformDispatcher.accessibilityFeaturesTestValue =
+      const FakeAccessibilityFeatures(disableAnimations: true);
+  addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+}

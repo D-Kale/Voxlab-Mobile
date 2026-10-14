@@ -133,6 +133,7 @@ void main() {
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
+    useReducedMotion(tester);
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(
@@ -182,6 +183,7 @@ void main() {
   testWidgets('splash golden', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
+    useReducedMotion(tester);
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(

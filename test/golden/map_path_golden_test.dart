@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:voxlab/core/constants/app_colors.dart';
 import 'package:voxlab/core/constants/app_theme.dart';
+import 'package:voxlab/presentation/features/map/widgets/map_path_model.dart';
 import 'package:voxlab/presentation/features/map/widgets/track_path.dart';
 
 import '../fixtures/map_fixtures.dart';
@@ -44,28 +45,27 @@ void main() {
     tester.view.physicalSize = surface;
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
+    useReducedMotion(tester);
 
-    final track = buildDemoTrack();
+    final model = MapPathModel.build([buildDemoTrack()], completed);
     await tester.pumpWidget(
       MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         home: Scaffold(
           backgroundColor: AppColors.background,
-          body: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-            children: [
-              TrackPath(
-                track: track,
-                completedExerciseIds: completed,
-                onExerciseTap: (_, __) {},
-              ),
-            ],
+          body: CustomScrollView(
+            slivers: buildMapSlivers(
+              model: model,
+              onStart: (_) {},
+              onGuide: (_) {},
+            ),
           ),
         ),
       ),
     );
     await tester.pumpAndSettle();
+    await settleImages(tester);
   }
 
   group('Map path goldens', () {

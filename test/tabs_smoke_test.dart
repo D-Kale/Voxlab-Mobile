@@ -111,6 +111,7 @@ void main() {
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
+    useReducedMotion(tester);
     addTearDown(tester.view.reset);
 
     final content = MaterialApp(

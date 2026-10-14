@@ -63,24 +63,19 @@ class ChunkyColors {
   );
 }
 
-/// Shared press behavior: the face sinks into its lip while pressed, the
-/// Duolingo button feel. Used by [ChunkyButton] and [ChunkyCard].
-class _Pressable extends StatefulWidget {
-  const _Pressable({
-    required this.builder,
-    required this.onTap,
-    required this.depth,
-  });
+/// Press behavior shared by chunky surfaces: the face sinks into its lip
+/// while pressed (the Duolingo button feel). Builders receive the state.
+class Pressable extends StatefulWidget {
+  const Pressable({super.key, required this.builder, required this.onTap});
 
   final Widget Function(bool pressed) builder;
   final VoidCallback? onTap;
-  final double depth;
 
   @override
-  State<_Pressable> createState() => _PressableState();
+  State<Pressable> createState() => _PressableState();
 }
 
-class _PressableState extends State<_Pressable> {
+class _PressableState extends State<Pressable> {
   bool _pressed = false;
 
   void _set(bool value) {
@@ -140,9 +135,8 @@ class ChunkyButton extends StatelessWidget {
       enabled: onPressed != null,
       label: label,
       excludeSemantics: true,
-      child: _Pressable(
+      child: Pressable(
         onTap: onPressed,
-        depth: depth,
         builder: (pressed) => SizedBox(
           height: height + depth,
           width: expand ? double.infinity : null,
@@ -235,34 +229,34 @@ class ChunkyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget face(bool pressed) => Padding(
-          padding: EdgeInsets.only(bottom: depth),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 70),
-            curve: Curves.easeOut,
-            transform: Matrix4.translationValues(0, pressed ? depth : 0, 0),
-            padding: padding,
-            decoration: BoxDecoration(
-              color: colors.face,
-              borderRadius: BorderRadius.circular(radius),
-              border: colors.border == null
-                  ? null
-                  : Border.all(color: colors.border!, width: 2),
-              boxShadow: [
-                BoxShadow(
-                  color: colors.lip,
-                  offset: Offset(0, pressed ? 0 : depth),
-                ),
-              ],
+      padding: EdgeInsets.only(bottom: depth),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 70),
+        curve: Curves.easeOut,
+        transform: Matrix4.translationValues(0, pressed ? depth : 0, 0),
+        padding: padding,
+        decoration: BoxDecoration(
+          color: colors.face,
+          borderRadius: BorderRadius.circular(radius),
+          border: colors.border == null
+              ? null
+              : Border.all(color: colors.border!, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: colors.lip,
+              offset: Offset(0, pressed ? 0 : depth),
             ),
-            child: child,
-          ),
-        );
+          ],
+        ),
+        child: child,
+      ),
+    );
 
     if (onTap == null) return face(false);
     return Semantics(
       button: true,
       label: semanticsLabel,
-      child: _Pressable(onTap: onTap, depth: depth, builder: face),
+      child: Pressable(onTap: onTap, builder: face),
     );
   }
 }

@@ -13,33 +13,27 @@ class ExerciseTypeStyle {
   final IconData icon;
 
   static ExerciseTypeStyle of(String type) => switch (type) {
-        'reading' => const ExerciseTypeStyle._(
-            ChunkyColors.orange,
-            Icons.menu_book_rounded,
-          ),
-        'quiz' => const ExerciseTypeStyle._(
-            ChunkyColors.red,
-            Icons.quiz_rounded,
-          ),
-        'writing' => const ExerciseTypeStyle._(
-            ChunkyColors.green,
-            Icons.edit_rounded,
-          ),
-        'oratory' || 'oratory_minigame' => const ExerciseTypeStyle._(
-            ChunkyColors.brown,
-            Icons.record_voice_over_rounded,
-          ),
-        'audio' => const ExerciseTypeStyle._(
-            ChunkyColors.orange,
-            Icons.headphones_rounded,
-          ),
-        'video' => const ExerciseTypeStyle._(
-            ChunkyColors.orange,
-            Icons.videocam_rounded,
-          ),
-        _ => const ExerciseTypeStyle._(
-            ChunkyColors.orange,
-            Icons.star_rounded,
-          ),
-      };
+    'reading' => const ExerciseTypeStyle._(
+      ChunkyColors.orange,
+      Icons.menu_book_rounded,
+    ),
+    'quiz' => const ExerciseTypeStyle._(ChunkyColors.red, Icons.quiz_rounded),
+    'writing' => const ExerciseTypeStyle._(
+      ChunkyColors.green,
+      Icons.edit_rounded,
+    ),
+    'oratory' || 'oratory_minigame' => const ExerciseTypeStyle._(
+      ChunkyColors.brown,
+      Icons.record_voice_over_rounded,
+    ),
+    'audio' => const ExerciseTypeStyle._(
+      ChunkyColors.orange,
+      Icons.headphones_rounded,
+    ),
+    'video' => const ExerciseTypeStyle._(
+      ChunkyColors.orange,
+      Icons.videocam_rounded,
+    ),
+    _ => const ExerciseTypeStyle._(ChunkyColors.orange, Icons.star_rounded),
+  };
 }

@@ -120,10 +120,14 @@ class Bob extends StatefulWidget {
 }
 
 class _BobState extends State<Bob> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller =
-      AnimationController(vsync: this, duration: widget.period);
-  late final Animation<double> _curve =
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine);
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: widget.period,
+  );
+  late final Animation<double> _curve = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeInOutSine,
+  );
 
   @override
   void didChangeDependencies() {
@@ -177,8 +181,10 @@ class PulseHalo extends StatefulWidget {
 
 class _PulseHaloState extends State<PulseHalo>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller =
-      AnimationController(vsync: this, duration: widget.period);
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: widget.period,
+  );
   bool _reduced = false;
 
   @override
