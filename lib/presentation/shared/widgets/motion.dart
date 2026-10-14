@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 /// Whether the user asked the platform to reduce motion. Decorative loops and
@@ -228,4 +230,137 @@ class _PulseHaloState extends State<PulseHalo>
       },
     );
   }
+}
+
+/// One-shot confetti burst from the top center, for celebrations. Paints
+/// nothing when motion is reduced.
+class ConfettiBurst extends StatefulWidget {
+  const ConfettiBurst({
+    super.key,
+    required this.colors,
+    this.count = 60,
+    this.duration = const Duration(milliseconds: 2200),
+  });
+
+  final List<Color> colors;
+  final int count;
+  final Duration duration;
+
+  @override
+  State<ConfettiBurst> createState() => _ConfettiBurstState();
+}
+
+class _ConfettiBurstState extends State<ConfettiBurst>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: widget.duration,
+  );
+  late final List<_Piece> _pieces;
+  bool _reduced = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final random = math.Random(7);
+    _pieces = List.generate(widget.count, (i) {
+      final angle = -math.pi / 2 + (random.nextDouble() - 0.5) * math.pi * 0.9;
+      final speed = 0.55 + random.nextDouble() * 0.6;
+      return _Piece(
+        vx: math.cos(angle) * speed,
+        vy: math.sin(angle) * speed,
+        spin: (random.nextDouble() - 0.5) * 14,
+        size: 6 + random.nextDouble() * 6,
+        color: widget.colors[i % widget.colors.length],
+        round: random.nextBool(),
+      );
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reduced = reduceMotion(context);
+    if (!_reduced && !_controller.isAnimating && _controller.value == 0) {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_reduced) return const SizedBox.expand();
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) => CustomPaint(
+          size: Size.infinite,
+          painter: _ConfettiPainter(_pieces, _controller.value),
+        ),
+      ),
+    );
+  }
+}
+
+class _Piece {
+  const _Piece({
+    required this.vx,
+    required this.vy,
+    required this.spin,
+    required this.size,
+    required this.color,
+    required this.round,
+  });
+
+  final double vx;
+  final double vy;
+  final double spin;
+  final double size;
+  final Color color;
+  final bool round;
+}
+
+class _ConfettiPainter extends CustomPainter {
+  _ConfettiPainter(this.pieces, this.t);
+
+  final List<_Piece> pieces;
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (t == 0 || t == 1) return;
+    final origin = Offset(size.width / 2, size.height * 0.28);
+    final scale = size.shortestSide * 1.1;
+    const gravity = 2.4;
+    final fade = t < 0.75 ? 1.0 : (1 - t) / 0.25;
+    for (final p in pieces) {
+      final x = origin.dx + p.vx * t * scale;
+      final y = origin.dy + (p.vy * t + gravity * t * t / 2) * scale;
+      final paint = Paint()..color = p.color.withValues(alpha: fade);
+      canvas.save();
+      canvas.translate(x, y);
+      canvas.rotate(p.spin * t);
+      if (p.round) {
+        canvas.drawCircle(Offset.zero, p.size / 2, paint);
+      } else {
+        canvas.drawRect(
+          Rect.fromCenter(
+            center: Offset.zero,
+            width: p.size,
+            height: p.size * 0.5,
+          ),
+          paint,
+        );
+      }
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ConfettiPainter old) => old.t != t;
 }
