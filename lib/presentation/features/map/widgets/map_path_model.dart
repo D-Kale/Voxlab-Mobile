@@ -3,7 +3,9 @@ import '../../../../domain/models/module.dart';
 import '../../../../domain/models/track.dart';
 import '../../../shared/widgets/chunky.dart';
 
-enum PathNodeState { completed, current, pending }
+/// Completed and current exercises can be opened; locked ones cannot until
+/// every exercise before them is done (same rule as `unlockedExerciseIds`).
+enum PathNodeState { completed, current, locked }
 
 class PathExerciseNode {
   const PathExerciseNode({
@@ -91,7 +93,7 @@ class MapPathModel {
               state = PathNodeState.current;
               foundCurrent = true;
             } else {
-              state = PathNodeState.pending;
+              state = PathNodeState.locked;
             }
             nodes.add(
               PathExerciseNode(

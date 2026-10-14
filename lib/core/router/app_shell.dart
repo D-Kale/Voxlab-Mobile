@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../presentation/features/tour/app_tour.dart';
 import '../constants/app_colors.dart';
 import 'routes.dart';
 
@@ -38,6 +39,15 @@ class AppShell extends StatelessWidget {
     ),
   ];
 
+  /// Spotlight targets for the first-run tour (Aprender has none: the tour
+  /// already points at the map itself).
+  static final _tourKeys = <GlobalKey?>[
+    null,
+    TourKeys.practiceTab,
+    TourKeys.analyzeTab,
+    TourKeys.profileTab,
+  ];
+
   @override
   Widget build(BuildContext context) {
     final uri = GoRouterState.of(context).uri.toString();
@@ -61,6 +71,7 @@ class AppShell extends StatelessWidget {
               children: [
                 for (var i = 0; i < _destinations.length; i++)
                   Expanded(
+                    key: _tourKeys[i],
                     child: _NavItem(
                       icon: _destinations[i].icon,
                       selectedIcon: _destinations[i].selected,

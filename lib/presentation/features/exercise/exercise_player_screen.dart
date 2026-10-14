@@ -17,6 +17,7 @@ import '../../shared/widgets/exercise_type_style.dart';
 import '../../shared/widgets/exercise_widget_factory.dart';
 import '../../shared/widgets/lesson_widgets.dart';
 import '../../shared/widgets/loading_skeleton.dart';
+import '../../shared/widgets/motion.dart';
 import '../../shared/widgets/voxi_state.dart';
 
 class ExercisePlayerScreen extends ConsumerWidget {
@@ -32,37 +33,114 @@ class ExercisePlayerScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final exerciseAsync = ref.watch(exerciseProvider(exerciseId));
+    final tracksAsync = ref.watch(tracksProvider);
+    final unlocked = ref.watch(unlockedExerciseIdsProvider);
+
+    Widget withTopBar(Widget child) => Column(
+      children: [
+        const _LessonTopBar(exercise: null),
+        Expanded(child: child),
+      ],
+    );
+
+    final Widget body;
+    final error = exerciseAsync.error ?? tracksAsync.error;
+    if (error != null) {
+      body = withTopBar(
+        ErrorView(
+          error: error,
+          onRetry: () {
+            ref.invalidate(exerciseProvider(exerciseId));
+            ref.invalidate(tracksProvider);
+          },
+          showVoxi: true,
+          voxiState: VoxiState.awake,
+        ),
+      );
+    } else if (!exerciseAsync.hasValue || unlocked == null) {
+      body = withTopBar(
+        const Padding(
+          padding: EdgeInsets.all(16),
+          child: LoadingSkeleton(itemCount: 3),
+        ),
+      );
+    } else if (!unlocked.contains(exerciseId)) {
+      // Also covers deep links: a locked exercise never starts.
+      body = withTopBar(const _LockedExercise());
+    } else {
+      body = _ExerciseBody(
+        exercise: exerciseAsync.requireValue,
+        lessonId: lessonId,
+      );
+    }
 
     return Scaffold(
       backgroundColor: lessonBackground,
-      body: SafeArea(
-        child: exerciseAsync.when(
-          data: (exercise) =>
-              _ExerciseBody(exercise: exercise, lessonId: lessonId),
-          loading: () => Column(
-            children: [
-              const _LessonTopBar(exercise: null),
-              const Expanded(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: LoadingSkeleton(itemCount: 3),
-                ),
+      body: SafeArea(child: body),
+    );
+  }
+}
+
+class _LockedExercise extends StatelessWidget {
+  const _LockedExercise();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          children: [
+            Bob(
+              child: Image.asset(
+                'assets/images/voxi_sleeping.png',
+                width: 130,
+                height: 130,
+                fit: BoxFit.contain,
               ),
-            ],
-          ),
-          error: (err, _) => Column(
-            children: [
-              const _LessonTopBar(exercise: null),
-              Expanded(
-                child: ErrorView(
-                  error: err,
-                  onRetry: () => ref.invalidate(exerciseProvider(exerciseId)),
-                  showVoxi: true,
-                  voxiState: VoxiState.awake,
-                ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: const BoxDecoration(
+                color: AppColors.idleFace,
+                shape: BoxShape.circle,
               ),
-            ],
-          ),
+              child: const Icon(
+                Icons.lock_rounded,
+                color: AppColors.darkBrownLight,
+                size: 30,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Ejercicio bloqueado',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.dmSans(
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                color: AppColors.darkBrown,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Completá los ejercicios anteriores del camino '
+              'para desbloquearlo.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.dmSans(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.darkBrownLight,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 28),
+            ChunkyButton(
+              label: 'VOLVER AL MAPA',
+              icon: Icons.map_rounded,
+              onPressed: () => context.go(AppRoutes.map),
+            ),
+          ],
         ),
       ),
     );

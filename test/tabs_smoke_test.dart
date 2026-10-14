@@ -161,7 +161,8 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text('Practicar Libre'), findsOneWidget);
       expect(find.text('Todos'), findsOneWidget);
-      expect(find.text('7 ejercicios disponibles'), findsOneWidget);
+      // e1, e2 and e5 are done; e3 is next, so 4 of 7 are open.
+      expect(find.text('7 ejercicios · 4 desbloqueados'), findsOneWidget);
       expect(find.text('Lectura en voz alta'), findsOneWidget);
     });
 
@@ -179,7 +180,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('2 ejercicios disponibles'), findsOneWidget);
+      expect(find.text('2 ejercicios · 2 desbloqueados'), findsOneWidget);
       expect(find.text('Lectura en voz alta'), findsNothing);
       expect(find.text('Pronunciación'), findsWidgets);
     });
@@ -196,6 +197,33 @@ void main() {
         ),
         findsOneWidget,
       );
+    });
+
+    testWidgets('locked exercises explain why instead of opening',
+        (tester) async {
+      await pump(tester, const PracticeScreen(), withRouter: true);
+
+      // e7 comes after the next exercise (e3), so it is locked.
+      final locked = find.text('Discurso de 1 minuto');
+      // scrollUntilVisible stops once the tile is built in the cache
+      // extent; ensureVisible then brings it fully on screen.
+      await tester.scrollUntilVisible(
+        locked,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(locked);
+      await tester.pumpAndSettle();
+      await tester.tap(locked);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Completá los ejercicios anteriores del camino para desbloquearlo.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byType(PracticeScreen), findsOneWidget);
     });
 
     testWidgets('no overflow on a narrow screen', (tester) async {

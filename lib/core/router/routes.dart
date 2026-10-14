@@ -9,6 +9,8 @@ class AppRoutes {
   static const String exercise = '/exercise/:id';
   static const String exerciseComplete = '/exercise/complete';
   static const String authWall = '/auth-wall';
+  static const String welcome = '/welcome';
+  static const String onboarding = '/onboarding';
   static const String login = '/auth/login';
   static const String register = '/auth/register';
 

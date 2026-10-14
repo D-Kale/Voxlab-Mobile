@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
 import '../../shared/widgets/chunky.dart';
+import '../../shared/widgets/lesson_widgets.dart';
 import '../../shared/widgets/motion.dart';
 import '../../shared/providers/auth_provider.dart';
 
@@ -57,6 +58,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final extra = GoRouterState.of(context).extra;
+    // Last step of the first-run onboarding: keep its progress bar and copy.
+    final fromOnboarding = extra is Map && extra['fromOnboarding'] == true;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -67,6 +71,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           onPressed: () =>
               context.canPop() ? context.pop() : context.go(AppRoutes.authWall),
         ),
+        title: fromOnboarding
+            ? const SizedBox(width: 220, child: LessonProgressBar(value: 1))
+            : null,
         backgroundColor: AppColors.background,
         elevation: 0,
       ),
@@ -94,7 +101,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Empezá tu viaje',
+                          fromOnboarding ? '¡Último paso!' : 'Empezá tu viaje',
                           style: GoogleFonts.dmSans(
                             fontSize: 28,
                             fontWeight: FontWeight.w900,
@@ -104,7 +111,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Creá tu cuenta y no pierdas tu progreso',
+                          fromOnboarding
+                              ? 'Creá tu perfil para guardar tu plan y tu '
+                                    'progreso.'
+                              : 'Creá tu cuenta y no pierdas tu progreso',
                           style: GoogleFonts.dmSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,

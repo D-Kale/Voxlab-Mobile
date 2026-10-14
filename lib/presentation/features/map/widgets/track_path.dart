@@ -141,6 +141,13 @@ class UnitPathSection extends StatelessWidget {
   final GlobalKey? currentKey;
 
   static const double _mascotSize = 84;
+
+  /// Muted card for locked nodes, like Duolingo's grey popover.
+  static const _lockedColors = ChunkyColors(
+    face: AppColors.darkBrownLight,
+    lip: AppColors.darkBrown,
+    content: Colors.white,
+  );
   static const double _ringDiameter = 104;
 
   @override
@@ -150,7 +157,7 @@ class UnitPathSection extends StatelessWidget {
       count: unit.slotCount,
     );
     final reached = [
-      for (final n in unit.nodes) n.state != PathNodeState.pending,
+      for (final n in unit.nodes) n.state != PathNodeState.locked,
       unit.isDone,
     ];
 
@@ -291,12 +298,14 @@ class UnitPathSection extends StatelessWidget {
     final node = unit.nodes[i];
     final style = ExerciseTypeStyle.of(node.exercise.type);
     final colors = switch (node.state) {
-      PathNodeState.pending => ChunkyColors.idle,
+      PathNodeState.locked => ChunkyColors.idle,
       _ => unit.colors,
     };
-    final icon = node.state == PathNodeState.completed
-        ? Icons.check_rounded
-        : style.icon;
+    final icon = switch (node.state) {
+      PathNodeState.completed => Icons.check_rounded,
+      PathNodeState.current => style.icon,
+      PathNodeState.locked => Icons.lock_rounded,
+    };
     final name = node.exercise.name.isNotEmpty
         ? node.exercise.name
         : formatExerciseType(node.exercise.type);
@@ -305,8 +314,14 @@ class UnitPathSection extends StatelessWidget {
       builder: (nodeContext) => PathNodeButton(
         colors: colors,
         icon: icon,
-        iconSize: node.state == PathNodeState.completed ? 40 : 32,
-        semanticsLabel: '$name, ${formatExerciseType(node.exercise.type)}',
+        iconSize: switch (node.state) {
+          PathNodeState.completed => 40,
+          PathNodeState.current => 32,
+          PathNodeState.locked => 28,
+        },
+        semanticsLabel: node.state == PathNodeState.locked
+            ? '$name, bloqueado'
+            : '$name, ${formatExerciseType(node.exercise.type)}',
         onTap: () => _openExercisePopover(nodeContext, i),
       ),
     );
@@ -358,6 +373,18 @@ class UnitPathSection extends StatelessWidget {
     final typeLabel = formatExerciseType(exercise.type);
     final xp = exerciseXpReward(exercise);
     final done = node.state == PathNodeState.completed;
+
+    if (node.state == PathNodeState.locked) {
+      showLessonPopover(
+        nodeContext,
+        anchor: _rectOf(nodeContext),
+        colors: _lockedColors,
+        title: exercise.name.isNotEmpty ? exercise.name : typeLabel,
+        subtitle: 'Completá los ejercicios anteriores para desbloquearlo.',
+        buttonLabel: 'BLOQUEADO',
+      );
+      return;
+    }
 
     showLessonPopover(
       nodeContext,
@@ -459,10 +486,12 @@ Future<void> showUnitGuide(
                 _GuideRow(
                   node: node,
                   color: unit.colors.face,
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    onStart(node);
-                  },
+                  onTap: node.state == PathNodeState.locked
+                      ? null
+                      : () {
+                          Navigator.of(context).pop();
+                          onStart(node);
+                        },
                 ),
             ],
           ),
@@ -481,12 +510,15 @@ class _GuideRow extends StatelessWidget {
 
   final PathExerciseNode node;
   final Color color;
-  final VoidCallback onTap;
+
+  /// Null for locked exercises.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final done = node.state == PathNodeState.completed;
     final current = node.state == PathNodeState.current;
+    final locked = node.state == PathNodeState.locked;
     final style = ExerciseTypeStyle.of(node.exercise.type);
     return InkWell(
       onTap: onTap,
@@ -503,7 +535,11 @@ class _GuideRow extends StatelessWidget {
                 color: done || current ? color : AppColors.idleFace,
               ),
               child: Icon(
-                done ? Icons.check_rounded : style.icon,
+                done
+                    ? Icons.check_rounded
+                    : locked
+                    ? Icons.lock_rounded
+                    : style.icon,
                 size: 22,
                 color: done || current
                     ? Colors.white
@@ -519,7 +555,9 @@ class _GuideRow extends StatelessWidget {
                 style: GoogleFonts.dmSans(
                   fontSize: 15,
                   fontWeight: current ? FontWeight.w900 : FontWeight.w700,
-                  color: AppColors.darkBrown,
+                  color: locked
+                      ? AppColors.darkBrownLight
+                      : AppColors.darkBrown,
                 ),
               ),
             ),

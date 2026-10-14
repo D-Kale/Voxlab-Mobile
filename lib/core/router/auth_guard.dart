@@ -9,6 +9,8 @@ class AuthGuard {
   /// the auth wall.
   static String? check(String location, AuthState authState) {
     final isAuthRoute = location == AppRoutes.authWall ||
+        location == AppRoutes.welcome ||
+        location == AppRoutes.onboarding ||
         location == AppRoutes.login ||
         location == AppRoutes.register;
     if (isAuthRoute || location == AppRoutes.splash) return null;

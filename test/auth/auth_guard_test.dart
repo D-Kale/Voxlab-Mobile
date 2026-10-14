@@ -45,6 +45,8 @@ void main() {
     for (final route in [
       AppRoutes.splash,
       AppRoutes.authWall,
+      AppRoutes.welcome,
+      AppRoutes.onboarding,
       AppRoutes.login,
       AppRoutes.register,
     ]) {

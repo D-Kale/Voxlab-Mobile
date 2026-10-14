@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
+import '../../../data/local/onboarding_store.dart';
 import '../../shared/widgets/motion.dart';
 import '../../shared/providers/auth_provider.dart';
 
@@ -44,7 +45,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     if (!mounted) return;
 
     final auth = ref.read(authProvider);
-    context.go(auth.isAuthenticated ? AppRoutes.map : AppRoutes.authWall);
+    if (auth.isAuthenticated) {
+      context.go(AppRoutes.map);
+      return;
+    }
+    // First launch on this device: Duolingo-style welcome and questions,
+    // which end in the register screen. Returning users see the auth wall.
+    final seen = await ref.read(onboardingStoreProvider).isOnboardingSeen();
+    if (!mounted) return;
+    context.go(seen ? AppRoutes.authWall : AppRoutes.welcome);
   }
 
   @override

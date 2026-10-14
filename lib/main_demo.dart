@@ -8,8 +8,10 @@ import 'data/repositories/content_repository_impl.dart';
 import 'dev/demo_data.dart';
 import 'presentation/shared/providers/repository_providers.dart';
 
-/// Offline demo build: signed-in user, local fixture content, in-memory
-/// progress. Run with `flutter run -t lib/main_demo.dart`.
+/// Offline demo build: fake auth, local fixture content, in-memory storage.
+/// Every run is a first launch (welcome, onboarding, register, tour); add
+/// `--dart-define=DEMO_SIGNED_IN=true` to start signed in on the map.
+/// Run with `flutter run -t lib/main_demo.dart`.
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(

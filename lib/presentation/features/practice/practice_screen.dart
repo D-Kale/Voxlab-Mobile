@@ -103,6 +103,7 @@ class _PracticeBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final completed = ref.watch(completedExerciseIdsProvider);
+    final unlocked = ref.watch(unlockedExerciseIdsProvider) ?? const {};
     final types = {for (final e in exercises) _typeKeyOf(e)}.toList()..sort();
     final filtered = selectedType == null
         ? exercises
@@ -113,9 +114,16 @@ class _PracticeBody extends ConsumerWidget {
       children: [
         const TabHeader(
           title: 'Practicar',
-          subtitle: 'Reforzá lo que quieras, a tu ritmo.',
+          subtitle: 'Repasá lo que ya desbloqueaste, a tu ritmo.',
         ),
-        EntranceAnimation(child: _QuickPracticeCard(exercises: filtered)),
+        EntranceAnimation(
+          child: _QuickPracticeCard(
+            exercises: [
+              for (final e in filtered)
+                if (unlocked.contains(e.id)) e,
+            ],
+          ),
+        ),
         const SizedBox(height: 26),
         Text(
           'Filtrar por tipo',
@@ -150,7 +158,9 @@ class _PracticeBody extends ConsumerWidget {
         ),
         const SizedBox(height: 18),
         Text(
-          '${filtered.length} ejercicios disponibles',
+          '${filtered.length} ejercicios · '
+          '${filtered.where((e) => unlocked.contains(e.id)).length} '
+          'desbloqueados',
           style: GoogleFonts.dmSans(
             fontSize: 14,
             fontWeight: FontWeight.w700,
@@ -165,6 +175,7 @@ class _PracticeBody extends ConsumerWidget {
             child: _ExerciseTile(
               exercise: filtered[i],
               done: completed.contains(filtered[i].id),
+              locked: !unlocked.contains(filtered[i].id),
             ),
           ),
       ],
@@ -297,10 +308,47 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _ExerciseTile extends StatelessWidget {
-  const _ExerciseTile({required this.exercise, required this.done});
+  const _ExerciseTile({
+    required this.exercise,
+    required this.done,
+    required this.locked,
+  });
 
   final Exercise exercise;
   final bool done;
+
+  /// Locked exercises stay visible but cannot start (same rule as the map).
+  final bool locked;
+
+  void _explainLocked(BuildContext context) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.darkBrown,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          content: Row(
+            children: [
+              const Icon(Icons.lock_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Completá los ejercicios anteriores del camino para '
+                  'desbloquearlo.',
+                  style: GoogleFonts.dmSans(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -313,15 +361,18 @@ class _ExerciseTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: ChunkyCard(
-        onTap: () => context.push(
-          AppRoutes.exercisePath(exercise.id),
-          extra: {'lessonId': null},
-        ),
-        semanticsLabel: name,
+        onTap: locked
+            ? () => _explainLocked(context)
+            : () => context.push(
+                AppRoutes.exercisePath(exercise.id),
+                extra: {'lessonId': null},
+              ),
+        semanticsLabel: locked ? '$name, bloqueado' : name,
+        colors: locked ? ChunkyColors.idle : ChunkyColors.white,
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            _TypeBadge(style: style),
+            _TypeBadge(style: style, locked: locked),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -334,7 +385,9 @@ class _ExerciseTile extends StatelessWidget {
                     style: GoogleFonts.dmSans(
                       fontSize: 16.5,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.darkBrown,
+                      color: locked
+                          ? AppColors.darkBrownLight
+                          : AppColors.darkBrown,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -347,7 +400,7 @@ class _ExerciseTile extends StatelessWidget {
                           color: style.ink,
                         ),
                       ),
-                      if (xp > 0 && !done) ...[
+                      if (xp > 0 && !done && !locked) ...[
                         const SizedBox(width: 6),
                         ChunkyTag(
                           label: '+$xp XP',
@@ -368,10 +421,10 @@ class _ExerciseTile extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(
-              Icons.chevron_right_rounded,
+            Icon(
+              locked ? Icons.lock_rounded : Icons.chevron_right_rounded,
               color: AppColors.darkBrownLight,
-              size: 26,
+              size: locked ? 22 : 26,
             ),
           ],
         ),
@@ -382,23 +435,23 @@ class _ExerciseTile extends StatelessWidget {
 
 /// Small 3D tile with the exercise type icon.
 class _TypeBadge extends StatelessWidget {
-  const _TypeBadge({required this.style});
+  const _TypeBadge({required this.style, this.locked = false});
 
   final ExerciseTypeStyle style;
+  final bool locked;
 
   @override
   Widget build(BuildContext context) {
+    final colors = locked ? ChunkyColors.idle : style.colors;
     return Container(
       width: 52,
       height: 52,
       decoration: BoxDecoration(
-        color: style.colors.face,
+        color: locked ? AppColors.surface : colors.face,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: style.colors.lip, offset: const Offset(0, 4)),
-        ],
+        boxShadow: [BoxShadow(color: colors.lip, offset: const Offset(0, 4))],
       ),
-      child: Icon(style.icon, color: style.colors.content, size: 26),
+      child: Icon(style.icon, color: colors.content, size: 26),
     );
   }
 }

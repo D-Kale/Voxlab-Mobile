@@ -7,6 +7,8 @@ import '../../presentation/features/auth/register_screen.dart';
 import '../../presentation/features/analyze/analyze_screen.dart';
 import '../../presentation/features/profile/profile_screen.dart';
 import '../../presentation/features/map/map_screen.dart';
+import '../../presentation/features/onboarding/onboarding_screen.dart';
+import '../../presentation/features/onboarding/welcome_screen.dart';
 import '../../presentation/features/practice/practice_screen.dart';
 import '../../presentation/features/splash/splash_screen.dart';
 import '../../presentation/features/exercise/exercise_player_screen.dart';
@@ -92,6 +94,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             lessonId: lessonId,
           );
         },
+      ),
+      GoRoute(
+        path: AppRoutes.welcome,
+        builder: (_, _) => const WelcomeScreen(),
+      ),
+      _slideRoute(
+        path: AppRoutes.onboarding,
+        builder: (_, _) => const OnboardingScreen(),
       ),
       _slideRoute(
         path: AppRoutes.authWall,

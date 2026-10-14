@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/local/local_progress_store.dart';
 import '../../../domain/models/lesson_status.dart';
 import '../../../domain/models/progress.dart';
+import '../../../utils/unlock_utils.dart';
 import '../providers/auth_provider.dart';
+import 'content_provider.dart';
 
 final totalXpStateProvider = Provider<int>((ref) {
   final entries = ref.watch(progressNotifierProvider);
@@ -19,6 +21,14 @@ final completedExerciseIdsProvider = Provider<Set<String>>((ref) {
 final completedExerciseCountProvider = Provider<int>((ref) {
   final completedIds = ref.watch(completedExerciseIdsProvider);
   return completedIds.length;
+});
+
+/// Exercises the user may open (see [unlockedExerciseIds]); null while the
+/// content is still loading.
+final unlockedExerciseIdsProvider = Provider<Set<String>?>((ref) {
+  final tracks = ref.watch(tracksProvider).valueOrNull;
+  if (tracks == null) return null;
+  return unlockedExerciseIds(tracks, ref.watch(completedExerciseIdsProvider));
 });
 
 /// Local-only progression, scoped to the signed-in user.

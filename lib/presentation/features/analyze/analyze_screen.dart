@@ -7,11 +7,13 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
 import '../../../domain/models/exercise.dart';
 import '../../../domain/models/progress.dart';
+import '../../../data/local/onboarding_store.dart';
 import '../../../utils/exercise_name_utils.dart';
 import '../../shared/providers/content_provider.dart';
 import '../../shared/providers/progress_provider.dart';
 import '../../shared/widgets/chunky.dart';
 import '../../shared/widgets/exercise_type_style.dart';
+import '../../shared/widgets/lesson_widgets.dart';
 import '../../shared/widgets/motion.dart';
 import '../../shared/widgets/stat_tile.dart';
 import '../../shared/widgets/tab_header.dart';
@@ -26,7 +28,12 @@ class AnalyzeScreen extends ConsumerWidget {
     final entries = ref.watch(progressNotifierProvider);
     final totalXp = ref.watch(totalXpStateProvider);
     final completedCount = ref.watch(completedExerciseCountProvider);
-    final weekXp = ref.watch(weeklyProgressProvider).total;
+    final weekly = ref.watch(weeklyProgressProvider);
+    final weekXp = weekly.total;
+    final todayXp = weekly.daily[DateTime.now().weekday - 1];
+    final goalXp =
+        ref.watch(onboardingProfileProvider).valueOrNull?.dailyGoalXp ??
+        OnboardingProfile.defaultDailyGoalXp;
     final exercises = ref.watch(exerciseByIdProvider);
     final recent = entries.reversed.take(10).toList();
 
@@ -92,6 +99,11 @@ class AnalyzeScreen extends ConsumerWidget {
                   const SizedBox(height: 14),
                   EntranceAnimation(
                     delay: EntranceAnimation.stagger(3),
+                    child: _DailyGoalCard(todayXp: todayXp, goalXp: goalXp),
+                  ),
+                  const SizedBox(height: 14),
+                  EntranceAnimation(
+                    delay: EntranceAnimation.stagger(3),
                     child: const ChunkyCard(
                       padding: EdgeInsets.all(18),
                       child: WeeklyChart(),
@@ -117,6 +129,81 @@ class AnalyzeScreen extends ConsumerWidget {
                     ),
                 ],
               ),
+      ),
+    );
+  }
+}
+
+/// Today's XP against the daily goal picked in the onboarding.
+class _DailyGoalCard extends StatelessWidget {
+  const _DailyGoalCard({required this.todayXp, required this.goalXp});
+
+  final int todayXp;
+  final int goalXp;
+
+  @override
+  Widget build(BuildContext context) {
+    final reached = todayXp >= goalXp;
+    return ChunkyCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: reached ? AppColors.gold : AppColors.idleFace,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: reached ? AppColors.goldDark : AppColors.idleLip,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Icon(
+              reached ? Icons.emoji_events_rounded : Icons.flag_rounded,
+              color: reached ? AppColors.darkBrown : AppColors.darkBrownLight,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        reached ? '¡Meta diaria cumplida!' : 'Meta diaria',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.darkBrown,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '$todayXp / $goalXp XP',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.darkBrownLight,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                LessonProgressBar(
+                  value: goalXp == 0 ? 1 : todayXp / goalXp,
+                  color: AppColors.gold,
+                  height: 14,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

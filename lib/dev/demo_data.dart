@@ -24,88 +24,89 @@ const demoUser = User(
 );
 
 Exercise _reading(String id, String name) => Exercise(
-      id: id,
-      type: 'reading',
-      name: name,
-      content: ExerciseContent.reading(
-        title: name,
-        content: 'Hablar en público es una habilidad que se entrena. '
-            'Respirá profundo, mirá a tu audiencia y empezá con una idea '
-            'clara. Las pausas no son silencios incómodos: le dan tiempo a '
-            'la audiencia para entender lo que acabás de decir.',
-        readingTimeSeconds: 45,
-        points: 10,
-      ),
-    );
+  id: id,
+  type: 'reading',
+  name: name,
+  content: ExerciseContent.reading(
+    title: name,
+    content:
+        'Hablar en público es una habilidad que se entrena. '
+        'Respirá profundo, mirá a tu audiencia y empezá con una idea '
+        'clara. Las pausas no son silencios incómodos: le dan tiempo a '
+        'la audiencia para entender lo que acabás de decir.',
+    readingTimeSeconds: 45,
+    points: 10,
+  ),
+);
 
 Exercise _quiz(String id, String name) => Exercise(
-      id: id,
-      type: 'quiz',
-      name: name,
-      content: const ExerciseContent.quiz(
-        pointsPerQuestion: 5,
-        questions: [
-          QuizQuestion(
-            question: '¿Qué conviene hacer antes de empezar a hablar?',
-            options: [
-              'Respirar profundo',
-              'Hablar lo más rápido posible',
-              'Mirar el piso',
-            ],
-            correctIndex: 0,
-            explanation: 'Respirar calma los nervios y estabiliza la voz.',
-          ),
-          QuizQuestion(
-            question: '¿Para qué sirven las pausas?',
-            options: [
-              'Para rellenar el tiempo',
-              'Para que la audiencia procese la idea',
-              'No sirven, hay que evitarlas',
-            ],
-            correctIndex: 1,
-            explanation: 'Una pausa breve marca las ideas importantes.',
-          ),
+  id: id,
+  type: 'quiz',
+  name: name,
+  content: const ExerciseContent.quiz(
+    pointsPerQuestion: 5,
+    questions: [
+      QuizQuestion(
+        question: '¿Qué conviene hacer antes de empezar a hablar?',
+        options: [
+          'Respirar profundo',
+          'Hablar lo más rápido posible',
+          'Mirar el piso',
         ],
+        correctIndex: 0,
+        explanation: 'Respirar calma los nervios y estabiliza la voz.',
       ),
-    );
+      QuizQuestion(
+        question: '¿Para qué sirven las pausas?',
+        options: [
+          'Para rellenar el tiempo',
+          'Para que la audiencia procese la idea',
+          'No sirven, hay que evitarlas',
+        ],
+        correctIndex: 1,
+        explanation: 'Una pausa breve marca las ideas importantes.',
+      ),
+    ],
+  ),
+);
 
 Exercise _writing(String id, String name) => Exercise(
-      id: id,
-      type: 'writing',
-      name: name,
-      content: const ExerciseContent.writing(
-        prompt: 'Escribí cómo te presentarías ante un grupo nuevo.',
-        minWords: 20,
-        maxWords: 120,
-        requirements: ['Tu nombre', 'A qué te dedicás', 'Un dato curioso'],
-        points: 15,
-      ),
-    );
+  id: id,
+  type: 'writing',
+  name: name,
+  content: const ExerciseContent.writing(
+    prompt: 'Escribí cómo te presentarías ante un grupo nuevo.',
+    minWords: 20,
+    maxWords: 120,
+    requirements: ['Tu nombre', 'A qué te dedicás', 'Un dato curioso'],
+    points: 15,
+  ),
+);
 
 Exercise _oratory(String id, String name) => Exercise(
-      id: id,
-      type: 'oratory_minigame',
-      name: name,
-      content: ExerciseContent.oratory(
-        prompt: 'Hablá sobre el tema sin detenerte.',
-        topic: name,
-        durationSeconds: 60,
-        minDurationSeconds: 20,
-        requirements: const ['Volumen claro', 'Sin muletillas'],
-        points: 20,
-      ),
-    );
+  id: id,
+  type: 'oratory_minigame',
+  name: name,
+  content: ExerciseContent.oratory(
+    prompt: 'Hablá sobre el tema sin detenerte.',
+    topic: name,
+    durationSeconds: 60,
+    minDurationSeconds: 20,
+    requirements: const ['Volumen claro', 'Sin muletillas'],
+    points: 20,
+  ),
+);
 
 Module _module(int id, String title, List<Exercise> exercises) => Module(
-      id: id,
-      trackId: 1,
-      title: title,
-      description: '',
-      orderIndex: id,
-      lessons: [
-        Lesson(id: id, title: title, description: '', exercises: exercises),
-      ],
-    );
+  id: id,
+  trackId: 1,
+  title: title,
+  description: '',
+  orderIndex: id,
+  lessons: [
+    Lesson(id: id, title: title, description: '', exercises: exercises),
+  ],
+);
 
 final demoTracks = <Track>[
   Track(
@@ -139,9 +140,16 @@ class DemoAuthRepository implements IAuthRepository {
   @override
   Future<User> login(String email, String password) async => demoUser;
 
+  /// A new account starts from zero (the seeded progress belongs to
+  /// [demoUser], who signs in with login).
   @override
   Future<User> register(String name, String email, String password) async =>
-      demoUser.copyWith(name: name, email: email);
+      demoUser.copyWith(
+        id: 'demo-new',
+        name: name,
+        email: email,
+        streakDays: 0,
+      );
 
   @override
   Future<void> logout() async {}
@@ -177,16 +185,49 @@ class DemoContentRepository implements IContentRepository {
   }
 }
 
-/// Always signed in; nothing touches the platform keychain.
+/// Starts the demo signed in (and with the onboarding and tour already
+/// seen) when built with `--dart-define=DEMO_SIGNED_IN=true`; otherwise every
+/// run is a first launch.
+const demoStartsSignedIn = bool.fromEnvironment('DEMO_SIGNED_IN');
+
+/// In-memory storage: nothing touches the platform keychain, so every demo
+/// run starts from the same state.
 class DemoSecureStorage extends SecureStorage {
-  @override
-  Future<String?> getToken() async => 'demo';
+  DemoSecureStorage({bool signedIn = demoStartsSignedIn})
+    : _token = signedIn ? 'demo' : null {
+    if (signedIn) {
+      _values['voxlab_onboarding_seen'] = 'true';
+      _values['voxlab_tour_seen'] = 'true';
+    }
+  }
+
+  String? _token;
+  final Map<String, String> _values = {};
 
   @override
-  Future<void> saveToken(String token) async {}
+  Future<String?> getToken() async => _token;
 
   @override
-  Future<void> clearToken() async {}
+  Future<void> saveToken(String token) async => _token = token;
+
+  @override
+  Future<void> clearToken() async => _token = null;
+
+  @override
+  Future<String?> readString(String key) async => _values[key];
+
+  @override
+  Future<void> writeString(String key, String value) async =>
+      _values[key] = value;
+
+  @override
+  Future<void> delete(String key) async => _values.remove(key);
+
+  @override
+  Future<void> clearAll() async {
+    _token = null;
+    _values.clear();
+  }
 }
 
 /// In-memory progress so every demo run starts from the same state: the
