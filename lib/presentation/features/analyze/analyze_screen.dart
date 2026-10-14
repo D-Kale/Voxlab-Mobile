@@ -19,6 +19,7 @@ import '../../shared/widgets/stat_tile.dart';
 import '../../shared/widgets/tab_header.dart';
 import 'providers/weekly_progress_provider.dart';
 import 'widgets/weekly_chart.dart';
+import '../../shared/widgets/voxi_mood.dart';
 
 class AnalyzeScreen extends ConsumerWidget {
   const AnalyzeScreen({super.key});
@@ -318,7 +319,7 @@ class _EmptyAnalysis extends StatelessWidget {
           children: [
             Bob(
               child: Image.asset(
-                'assets/images/voxi_sleeping.png',
+                VoxiMood.sleepy.asset,
                 width: 120,
                 height: 120,
                 fit: BoxFit.contain,

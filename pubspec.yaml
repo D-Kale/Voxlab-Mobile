@@ -52,6 +52,15 @@ flutter:
     - assets/images/voxi_awake.png
     - assets/images/voxi_sleeping.png
     - assets/images/voxi_logo.png
+    - assets/images/voxi_sleepy.png
+    - assets/images/voxi_bored.png
+    - assets/images/voxi_idle.png
+    - assets/images/voxi_angry.png
+    - assets/images/voxi_thinking.png
+    - assets/images/voxi_love.png
+    - assets/images/voxi_shy.png
+    - assets/images/voxi_laugh.png
+    - assets/images/voxi_singing.png
     - assets/sounds/
   fonts:
     # Bundled so google_fonts finds them in the asset manifest instead of

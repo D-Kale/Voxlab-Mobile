@@ -7,6 +7,7 @@ import 'chunky.dart';
 import 'motion.dart';
 import '../../../core/network/api_client.dart';
 import 'voxi_state.dart';
+import 'voxi_mood.dart';
 
 class ErrorView extends ConsumerWidget {
   const ErrorView({
@@ -27,8 +28,8 @@ class ErrorView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final voxiAsset = voxiState == VoxiState.awake
-        ? 'assets/images/voxi_awake.png'
-        : 'assets/images/voxi_sleeping.png';
+        ? VoxiMood.thinking.asset
+        : VoxiMood.sleepy.asset;
 
     return Center(
       child: Padding(

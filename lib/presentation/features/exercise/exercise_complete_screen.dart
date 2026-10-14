@@ -10,6 +10,7 @@ import '../../shared/widgets/chunky.dart';
 import '../../shared/widgets/lesson_widgets.dart';
 import '../../shared/widgets/motion.dart';
 import '../../shared/widgets/skill_bar.dart';
+import '../../shared/widgets/voxi_mood.dart';
 
 class ExerciseCompleteScreen extends StatefulWidget {
   const ExerciseCompleteScreen({super.key});
@@ -58,7 +59,11 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
                       children: [
-                        _Hero(isReview: isReview, level: result.level),
+                        _Hero(
+                          isReview: isReview,
+                          level: result.level,
+                          score: result.overall,
+                        ),
                         const SizedBox(height: 22),
                         Row(
                           children: [
@@ -200,10 +205,17 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
 }
 
 class _Hero extends StatelessWidget {
-  const _Hero({required this.isReview, required this.level});
+  const _Hero({
+    required this.isReview,
+    required this.level,
+    required this.score,
+  });
 
   final bool isReview;
   final String level;
+
+  /// Session score (0-100): picks Voxi's reaction.
+  final int score;
 
   @override
   Widget build(BuildContext context) {
@@ -216,7 +228,7 @@ class _Hero extends StatelessWidget {
           child: Bob(
             amplitude: 6,
             child: Image.asset(
-              'assets/images/voxi_awake.png',
+              isReview ? VoxiMood.idle.asset : VoxiMood.forScore(score).asset,
               width: 140,
               height: 140,
               fit: BoxFit.contain,

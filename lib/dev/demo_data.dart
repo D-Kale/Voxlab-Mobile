@@ -101,9 +101,14 @@ Exercise _oratory(String id, String name) => Exercise(
   ),
 );
 
-Module _module(int id, String title, List<Exercise> exercises) => Module(
+Module _module(
+  int id,
+  String title,
+  List<Exercise> exercises, {
+  int trackId = 1,
+}) => Module(
   id: id,
-  trackId: 1,
+  trackId: trackId,
   title: title,
   description: '',
   orderIndex: id,
@@ -135,6 +140,38 @@ final demoTracks = <Track>[
         _reading('d9', 'Postura segura'),
         _quiz('d10', 'Contacto visual'),
         _oratory('d11', 'Gestos con intención'),
+      ]),
+    ],
+  ),
+  // Two more levels so the demo shows the level gates and landscapes.
+  Track(
+    id: 2,
+    title: 'Persuadí con tu mensaje',
+    description: 'Estructurá ideas que convencen.',
+    isActive: true,
+    modules: [
+      _module(4, 'Abrí con impacto', trackId: 2, [
+        _reading('d12', 'Los primeros 30 segundos'),
+        _quiz('d13', 'Aperturas que enganchan'),
+        _oratory('d14', 'Tu mejor apertura'),
+      ]),
+      _module(5, 'La regla de tres', trackId: 2, [
+        _reading('d15', 'Tres ideas, un mensaje'),
+        _writing('d16', 'Tus tres pilares'),
+        _oratory('d17', 'Discurso en tres partes'),
+      ]),
+    ],
+  ),
+  Track(
+    id: 3,
+    title: 'Dominá el escenario',
+    description: 'Nervios, voz y presencia frente a un público.',
+    isActive: true,
+    modules: [
+      _module(6, 'Nervios bajo control', trackId: 3, [
+        _reading('d18', 'Respirar antes de hablar'),
+        _quiz('d19', 'Qué hacer con los nervios'),
+        _oratory('d20', 'Hablá con calma'),
       ]),
     ],
   ),
@@ -194,6 +231,10 @@ class DemoContentRepository implements IContentRepository {
 /// run is a first launch.
 const demoStartsSignedIn = bool.fromEnvironment('DEMO_SIGNED_IN');
 
+/// Offline fixture content instead of the server's
+/// (`--dart-define=DEMO_FIXTURES=true`).
+const demoUsesFixtures = bool.fromEnvironment('DEMO_FIXTURES');
+
 /// In-memory storage: nothing touches the platform keychain, so every demo
 /// run starts from the same state.
 class DemoSecureStorage extends SecureStorage {
@@ -238,7 +279,11 @@ class DemoSecureStorage extends SecureStorage {
 /// first three exercises done, so the map, stats and chart have something
 /// to show and the oratory exercise (recording) is the next one.
 class DemoProgressStore extends LocalProgressStore {
-  DemoProgressStore() : super.test();
+  /// [seeded] marks the first fixture exercises as done; with server
+  /// content the ids differ, so the demo starts from zero.
+  DemoProgressStore({bool seeded = true}) : super.test() {
+    if (!seeded) _data.clear();
+  }
 
   final Map<String, List<Progress>> _data = {
     demoUser.id: [

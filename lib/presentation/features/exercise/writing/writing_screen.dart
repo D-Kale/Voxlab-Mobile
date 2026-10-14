@@ -9,6 +9,7 @@ import '../../../../domain/models/session_result.dart';
 import '../../../shared/widgets/chunky.dart';
 import '../../../shared/widgets/lesson_widgets.dart';
 import '../../../shared/widgets/motion.dart';
+import '../../../shared/widgets/voxi_mood.dart';
 
 class WritingWidget extends ConsumerStatefulWidget {
   const WritingWidget({
@@ -246,7 +247,7 @@ class _Analyzing extends StatelessWidget {
             Bob(
               amplitude: 6,
               child: Image.asset(
-                'assets/images/voxi_awake.png',
+                VoxiMood.thinking.asset,
                 width: 120,
                 height: 120,
                 fit: BoxFit.contain,

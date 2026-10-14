@@ -19,6 +19,7 @@ import '../../shared/widgets/lesson_widgets.dart';
 import '../../shared/widgets/loading_skeleton.dart';
 import '../../shared/widgets/motion.dart';
 import '../../shared/widgets/voxi_state.dart';
+import '../../shared/widgets/voxi_mood.dart';
 
 class ExercisePlayerScreen extends ConsumerWidget {
   const ExercisePlayerScreen({
@@ -93,7 +94,7 @@ class _LockedExercise extends StatelessWidget {
           children: [
             Bob(
               child: Image.asset(
-                'assets/images/voxi_sleeping.png',
+                VoxiMood.bored.asset,
                 width: 130,
                 height: 130,
                 fit: BoxFit.contain,

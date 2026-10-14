@@ -18,6 +18,7 @@ import '../../../shared/widgets/chunky.dart';
 import '../../../shared/widgets/lesson_widgets.dart';
 import '../../../shared/widgets/motion.dart';
 import '../../../shared/widgets/stat_tile.dart';
+import '../../../shared/widgets/voxi_mood.dart';
 
 /// Oratory exercise: records the user's voice while a timer runs, then
 /// analyzes the take. The backend speech AI (Whisper) adds the transcript,
@@ -523,7 +524,7 @@ class _OratoryWidgetState extends ConsumerState<OratoryWidget>
         const Spacer(),
         Bob(
           child: Image.asset(
-            'assets/images/voxi_awake.png',
+            VoxiMood.thinking.asset,
             width: 120,
             height: 120,
             fit: BoxFit.contain,
@@ -831,7 +832,7 @@ class _Analyzing extends StatelessWidget {
           Bob(
             amplitude: 6,
             child: Image.asset(
-              'assets/images/voxi_awake.png',
+              VoxiMood.thinking.asset,
               width: 120,
               height: 120,
               fit: BoxFit.contain,

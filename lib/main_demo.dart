@@ -9,7 +9,10 @@ import 'data/repositories/content_repository_impl.dart';
 import 'dev/demo_data.dart';
 import 'presentation/shared/providers/repository_providers.dart';
 
-/// Offline demo build: fake auth, local fixture content, in-memory storage.
+/// Demo build: fake auth and in-memory storage, so every screen can be
+/// reviewed without an account. Content (tracks, units, exercises) comes
+/// from the real server, which serves it publicly; add
+/// `--dart-define=DEMO_FIXTURES=true` to use the offline fixtures instead.
 /// Every run is a first launch (welcome, onboarding, register, tour); add
 /// `--dart-define=DEMO_SIGNED_IN=true` to start signed in on the map.
 /// Run with `flutter run -t lib/main_demo.dart`.
@@ -20,8 +23,11 @@ void main() {
       overrides: [
         authRepositoryProvider.overrideWithValue(DemoAuthRepository()),
         secureStorageProvider.overrideWithValue(DemoSecureStorage()),
-        contentRepositoryProvider.overrideWithValue(DemoContentRepository()),
-        localProgressStoreProvider.overrideWithValue(DemoProgressStore()),
+        if (demoUsesFixtures)
+          contentRepositoryProvider.overrideWithValue(DemoContentRepository()),
+        localProgressStoreProvider.overrideWithValue(
+          DemoProgressStore(seeded: demoUsesFixtures),
+        ),
         analyzerServiceProvider.overrideWithValue(DemoAnalyzerService()),
       ],
       child: const VoxlabApp(),

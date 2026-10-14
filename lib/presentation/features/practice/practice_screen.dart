@@ -20,6 +20,7 @@ import '../../shared/widgets/loading_skeleton.dart';
 import '../../shared/widgets/motion.dart';
 import '../../shared/widgets/tab_header.dart';
 import '../../shared/widgets/voxi_state.dart';
+import '../../shared/widgets/voxi_mood.dart';
 
 class PracticeScreen extends ConsumerStatefulWidget {
   const PracticeScreen({super.key});
@@ -248,7 +249,7 @@ class _QuickPracticeCard extends StatelessWidget {
           const SizedBox(width: 8),
           Bob(
             child: Image.asset(
-              'assets/images/voxi_awake.png',
+              VoxiMood.singing.asset,
               width: 96,
               height: 96,
               fit: BoxFit.contain,
@@ -468,7 +469,7 @@ class _EmptyExercises extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/images/voxi_sleeping.png',
+              VoxiMood.bored.asset,
               width: 96,
               height: 96,
               fit: BoxFit.contain,
