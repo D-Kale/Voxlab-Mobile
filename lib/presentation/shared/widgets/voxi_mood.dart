@@ -25,6 +25,6 @@ enum VoxiMood {
     if (score >= 90) return love;
     if (score >= 75) return singing;
     if (score >= 50) return laugh;
-    return shy;
+    return thinking;
   }
 }

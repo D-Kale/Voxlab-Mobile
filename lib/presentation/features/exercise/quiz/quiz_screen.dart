@@ -6,6 +6,7 @@ import '../../../../core/audio/sound_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../domain/models/exercise_content.dart';
 import '../../../../domain/models/exercise_outcome.dart';
+import '../../../../domain/models/session_result.dart';
 import '../../../shared/widgets/chunky.dart';
 import '../../../shared/widgets/lesson_widgets.dart';
 
@@ -69,7 +70,13 @@ class _QuizWidgetState extends State<QuizWidget> {
       return;
     }
     widget.onCompleted?.call(
-      ExerciseOutcome(score: _correctCount * widget.pointsPerQuestion),
+      ExerciseOutcome(
+        score: _correctCount * widget.pointsPerQuestion,
+        sessionResult: SessionResultBuilder.fromQuiz(
+          correct: _correctCount,
+          total: _questions.length,
+        ),
+      ),
     );
   }
 

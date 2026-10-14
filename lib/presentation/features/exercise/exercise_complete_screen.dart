@@ -119,29 +119,33 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
                             ],
                           ),
                         ],
-                        const SizedBox(height: 22),
-                        EntranceAnimation(
-                          delay: const Duration(milliseconds: 450),
-                          child: ChunkyCard(
-                            padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const _CardTitle('Desglose de habilidades'),
-                                const SizedBox(height: 14),
-                                for (final skill in result.skills)
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 14),
-                                    child: SkillBar(
-                                      icon: skill.icon,
-                                      label: skill.label,
-                                      percent: skill.percent,
+                        if (result.skills.isNotEmpty) ...[
+                          const SizedBox(height: 22),
+                          EntranceAnimation(
+                            delay: const Duration(milliseconds: 450),
+                            child: ChunkyCard(
+                              padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const _CardTitle('Desglose de habilidades'),
+                                  const SizedBox(height: 14),
+                                  for (final skill in result.skills)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 14,
+                                      ),
+                                      child: SkillBar(
+                                        icon: skill.icon,
+                                        label: skill.label,
+                                        percent: skill.percent,
+                                      ),
                                     ),
-                                  ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                         if (result.aiFeedback != null) ...[
                           const SizedBox(height: 14),
                           EntranceAnimation(

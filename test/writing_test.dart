@@ -115,6 +115,22 @@ void main() {
       expect(result.byAi, isFalse);
     });
 
+    test('quiz scores the share of correct answers, no made-up skills', () {
+      final result = SessionResultBuilder.fromQuiz(correct: 2, total: 3);
+      expect(result.overall, 67);
+      expect(result.skills.map((s) => s.key), ['comprension']);
+    });
+
+    test('reading is complete, without delivery skills', () {
+      final result = SessionResultBuilder.fromReading();
+      expect(result.overall, 100);
+      expect(result.skills.map((s) => s.key), ['lectura']);
+    });
+
+    test('fromScore never invents a skill breakdown', () {
+      expect(SessionResultBuilder.fromScore(10).skills, isEmpty);
+    });
+
     test('fromWriting points out a missing requirement', () {
       final result = SessionResultBuilder.fromWriting(
         _text,
