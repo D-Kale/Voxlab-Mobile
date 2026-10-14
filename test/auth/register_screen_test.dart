@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:voxlab/core/network/api_client.dart';
 import 'package:voxlab/core/router/routes.dart';
 import 'package:voxlab/data/local/local_progress_store.dart';
-import 'package:voxlab/data/remote/services/progress_api_service.dart';
 import 'package:voxlab/domain/models/user.dart';
 import 'package:voxlab/domain/models/progress.dart';
 import 'package:voxlab/domain/repositories/i_auth_repository.dart';
@@ -54,41 +53,6 @@ class _FakeAuthRepository implements IAuthRepository {
 
   @override
   String? getToken() => null;
-}
-
-class _FakeProgressApiService implements ProgressApiService {
-  _FakeProgressApiService();
-
-  @override
-  Future<UserProgress> getProgress() async {
-    return UserProgress(
-      xp: 0,
-      streakDays: 0,
-      completedExerciseIds: [],
-      weeklyChart: [],
-      lastSyncedAt: DateTime.now().toIso8601String(),
-    );
-  }
-
-  @override
-  Future<ProgressSubmitData> submitProgress(ProgressSubmitRequest request) async {
-    return ProgressSubmitData(
-      xp: 90,
-      streakDays: 1,
-      newlyCompleted: [request.exerciseId],
-      streakUpdated: true,
-    );
-  }
-
-  @override
-  Future<ProgressSubmitData> syncProgress(List<ProgressSubmitRequest> entries) async {
-    return ProgressSubmitData(
-      xp: 0,
-      streakDays: 0,
-      newlyCompleted: [],
-      streakUpdated: false,
-    );
-  }
 }
 
 class _FakeLocalProgressStore extends LocalProgressStore {
@@ -139,7 +103,6 @@ Future<void> _pumpRegisterScreen(
     ProviderScope(
       overrides: [
         authRepositoryProvider.overrideWithValue(repo),
-        progressApiServiceProvider.overrideWithValue(_FakeProgressApiService()),
         localProgressStoreProvider.overrideWithValue(_FakeLocalProgressStore()),
       ],
       child: MaterialApp.router(routerConfig: _buildRouter()),

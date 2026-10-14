@@ -3,14 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/secure_storage.dart';
-import '../../../data/local/local_progress_store.dart';
-import '../../../data/remote/services/progress_api_service.dart';
-import '../../../domain/models/lesson_status.dart';
-import '../../../domain/models/progress.dart';
 import '../../../domain/models/user.dart';
 import '../../../domain/repositories/i_auth_repository.dart';
 import 'repository_providers.dart';
-import 'progress_provider.dart';
 
 enum AuthStatus { initial, guest, authenticated }
 
@@ -54,48 +49,25 @@ String _friendlyError(Object e) {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier(this._repository, this._storage, this._ref, this._progressApi) : super(const AuthState());
+  AuthNotifier(this._repository, this._storage) : super(const AuthState());
 
   final IAuthRepository _repository;
   final SecureStorage _storage;
-  final Ref _ref;
-  final ProgressApiService _progressApi;
-
-  Future<void> _loadProgressFromServer(String userId) async {
-    try {
-      final progress = await _progressApi.getProgress();
-      final entries = progress.completedExerciseIds.map((exerciseId) => Progress(
-        exerciseId: exerciseId,
-        status: LessonStatus.completed,
-        score: 100,
-        completedAt: DateTime.now(),
-      )).toList();
-      await _ref.read(localProgressStoreProvider).save(userId, entries);
-      _ref.read(progressNotifierProvider.notifier).setUserId(userId);
-      await _ref.read(progressNotifierProvider.notifier).reload();
-    } catch (e) {
-      debugPrint('Failed to load progress from server: $e');
-      _ref.read(progressNotifierProvider.notifier).setUserId(userId);
-    }
-  }
 
   Future<void> checkAuth() async {
     try {
       final hasToken = await _storage.hasToken();
       if (!hasToken) {
         state = state.copyWith(status: AuthStatus.guest);
-        _ref.read(progressNotifierProvider.notifier).setUserId(null);
         return;
       }
 
       final user = await _repository.getCurrentUser();
       state = AuthState(status: AuthStatus.authenticated, user: user);
-      await _loadProgressFromServer(user.id);
     } catch (e) {
       debugPrint('AuthNotifier checkAuth error: $e');
       await _storage.clearToken().catchError((_) {});
       state = state.copyWith(status: AuthStatus.guest);
-      _ref.read(progressNotifierProvider.notifier).setUserId(null);
     }
   }
 
@@ -104,7 +76,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final user = await _repository.login(email, password);
       state = AuthState(status: AuthStatus.authenticated, user: user);
-      await _loadProgressFromServer(user.id);
       return null;
     } catch (e) {
       final msg = _friendlyError(e);
@@ -119,7 +90,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final user = await _repository.register(name, email, password);
       state = AuthState(status: AuthStatus.authenticated, user: user);
-      await _loadProgressFromServer(user.id);
       return null;
     } catch (e) {
       final msg = _friendlyError(e);
@@ -139,7 +109,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
     await _storage.clearToken();
     state = const AuthState(status: AuthStatus.guest);
-    _ref.read(progressNotifierProvider.notifier).setUserId(null);
   }
 
   void clearError() {
@@ -159,7 +128,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final user = await _repository.getCurrentUser();
       state = state.copyWith(user: user);
-      _ref.read(progressNotifierProvider.notifier).setUserId(user.id);
     } catch (e) {
       debugPrint('AuthNotifier refreshUser error: $e');
     }
@@ -169,6 +137,5 @@ class AuthNotifier extends StateNotifier<AuthState> {
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final repo = ref.read(authRepositoryProvider);
   final storage = ref.read(secureStorageProvider);
-  final progressApi = ref.read(progressApiServiceProvider);
-  return AuthNotifier(repo, storage, ref, progressApi);
+  return AuthNotifier(repo, storage);
 });

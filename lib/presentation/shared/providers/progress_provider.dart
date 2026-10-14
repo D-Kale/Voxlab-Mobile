@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/local/local_progress_store.dart';
-import '../../../data/remote/services/progress_api_service.dart';
 import '../../../domain/models/lesson_status.dart';
 import '../../../domain/models/progress.dart';
 import '../providers/auth_provider.dart';
@@ -22,52 +21,31 @@ final completedExerciseCountProvider = Provider<int>((ref) {
   return completedIds.length;
 });
 
+/// Local-only progression, scoped to the signed-in user.
+///
+/// Rebuilds whenever the authenticated user changes and loads that user's
+/// entries from [LocalProgressStore]. There is no server-side progress.
 class ProgressNotifier extends Notifier<List<Progress>> {
-  String? _currentUserId;
-  final List<ProgressSubmitRequest> _pendingSync = [];
+  String? _userId;
 
   LocalProgressStore get _store => ref.read(localProgressStoreProvider);
-  ProgressApiService get _api => ref.read(progressApiServiceProvider);
 
   @override
   List<Progress> build() {
-    final entriesAsync = ref.watch(_entriesProvider);
-    return entriesAsync.valueOrNull ?? const <Progress>[];
-  }
-
-  void setUserId(String? userId) {
-    if (_currentUserId == userId) return;
-    _currentUserId = userId;
-    reload();
-  }
-
-  void addProgress({
-    required String exerciseId,
-    int? lessonId,
-    required LessonStatus status,
-    int? score,
-  }) {
-    if (_containsExercise(exerciseId)) return;
-
-    final entry = Progress(
-      exerciseId: exerciseId,
-      lessonId: lessonId,
-      status: status,
-      score: score,
-      completedAt: status == LessonStatus.completed ? DateTime.now() : null,
-    );
-
-    state = [...state, entry];
-    _persist();
+    _userId = ref.watch(authProvider.select((s) => s.user?.id));
+    if (_userId != null) Future.microtask(reload);
+    return const <Progress>[];
   }
 
   Future<void> reload() async {
-    if (_currentUserId == null) {
+    final userId = _userId;
+    if (userId == null) {
       state = const <Progress>[];
       return;
     }
-    final entries = await _store.load(_currentUserId!);
-    state = entries;
+    final entries = await _store.load(userId);
+    // Ignore a load that finished after the user changed.
+    if (_userId == userId) state = entries;
   }
 
   Future<void> saveProgress({
@@ -75,120 +53,32 @@ class ProgressNotifier extends Notifier<List<Progress>> {
     int? lessonId,
     required LessonStatus status,
     int? score,
-    String? exerciseType,
   }) async {
-    addProgress(
-      exerciseId: exerciseId,
-      lessonId: lessonId,
-      status: status,
-      score: score,
-    );
+    if (state.any((p) => p.exerciseId == exerciseId)) return;
 
-    if (status == LessonStatus.completed) {
-      Future.microtask(() => _submitToServer(exerciseId, score, lessonId));
-    }
-  }
-
-  Future<void> _submitToServer(
-    String exerciseId,
-    int? score,
-    int? lessonId,
-  ) async {
-    if (_currentUserId == null) return;
-
-    final request = ProgressSubmitRequest(
-      exerciseId: exerciseId,
-      score: score ?? 0,
-      completedAt: DateTime.now().toUtc().toIso8601String(),
-      lessonId: lessonId,
-    );
-
-    try {
-      final response = await _api.submitProgress(request);
-      _mergeServerState(response);
-    } catch (e) {
-      debugPrint('Server sync failed, queuing for retry: $e');
-      _queueForRetry(request);
-    }
-  }
-
-  void _mergeServerState(ProgressSubmitData server) {
-    final serverCompleted = server.newlyCompleted.toSet();
-    final updatedEntries = state.map((p) {
-      if (serverCompleted.contains(p.exerciseId)) {
-        return p.copyWith(
-          status: LessonStatus.completed,
-          score: p.score ?? 100,
-          completedAt: DateTime.now(),
-        );
-      }
-      return p;
-    }).toList();
-
-    state = updatedEntries;
-    _persist();
-  }
-
-  void _queueForRetry(ProgressSubmitRequest request) {
-    _pendingSync.add(request);
-  }
-
-  Future<void> flushPendingSync() async {
-    if (_pendingSync.isEmpty || _currentUserId == null) return;
-    final toSync = List<ProgressSubmitRequest>.from(_pendingSync);
-    _pendingSync.clear();
-    for (final req in toSync) {
-      try {
-        await _api.submitProgress(req);
-      } catch (e) {
-        debugPrint('Retry sync failed: $e');
-        _pendingSync.add(req);
-      }
-    }
-  }
-
-  Future<void> loadFromServer() async {
-    if (_currentUserId == null) return;
-    try {
-      final progress = await _api.getProgress();
-      final serverCompleted = progress.completedExerciseIds.toSet();
-      final updatedEntries = state.map((p) {
-        if (serverCompleted.contains(p.exerciseId)) {
-          return p.copyWith(
-            status: LessonStatus.completed,
-            score: p.score ?? 100,
-            completedAt: DateTime.now(),
-          );
-        }
-        return p;
-      }).toList();
-      state = updatedEntries;
-      await _persist();
-    } catch (e) {
-      debugPrint('Failed to load progress from server: $e');
-    }
-  }
-
-  bool _containsExercise(String exerciseId) {
-    return state.any((p) => p.exerciseId == exerciseId);
+    state = [
+      ...state,
+      Progress(
+        exerciseId: exerciseId,
+        lessonId: lessonId,
+        status: status,
+        score: score,
+        completedAt: status == LessonStatus.completed ? DateTime.now() : null,
+      ),
+    ];
+    await _persist();
   }
 
   Future<void> _persist() async {
-    if (_currentUserId == null) return;
+    final userId = _userId;
+    if (userId == null) return;
     try {
-      await _store.save(_currentUserId!, state);
+      await _store.save(userId, state);
     } catch (e) {
       debugPrint('LocalProgressStore persist error: $e');
     }
   }
 }
-
-final _entriesProvider = FutureProvider<List<Progress>>((ref) async {
-  final notifier = ref.read(progressNotifierProvider.notifier);
-  final userId = ref.watch(authProvider.select((s) => s.user?.id));
-  notifier.setUserId(userId);
-  return ref.watch(localProgressStoreProvider).load(userId ?? '');
-});
 
 final progressNotifierProvider =
     NotifierProvider<ProgressNotifier, List<Progress>>(ProgressNotifier.new);

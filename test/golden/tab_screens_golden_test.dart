@@ -15,7 +15,6 @@ import 'package:voxlab/presentation/shared/providers/auth_provider.dart';
 import 'package:voxlab/presentation/shared/providers/content_provider.dart';
 import 'package:voxlab/presentation/shared/providers/progress_provider.dart';
 import 'package:voxlab/core/storage/secure_storage.dart';
-import 'package:voxlab/data/remote/services/progress_api_service.dart';
 import 'package:voxlab/domain/repositories/i_auth_repository.dart';
 
 import '../fixtures/map_fixtures.dart';
@@ -47,7 +46,7 @@ class _FakeProgressNotifier extends ProgressNotifier {
 
 class _FakeAuthNotifier extends AuthNotifier {
   _FakeAuthNotifier(Ref ref)
-      : super(_FakeRepo(), SecureStorage(), ref, _FakeApi()) {
+      : super(_FakeRepo(), SecureStorage()) {
     state = AuthState(
       user: User(
         id: 'u1',
@@ -85,19 +84,6 @@ class _FakeRepo implements IAuthRepository {
 
   @override
   String? getToken() => null;
-}
-
-class _FakeApi extends ProgressApiService {
-  @override
-  Future<UserProgress> getProgress() async => throw UnimplementedError();
-
-  @override
-  Future<ProgressSubmitData> submitProgress(ProgressSubmitRequest r) =>
-      throw UnimplementedError();
-
-  @override
-  Future<ProgressSubmitData> syncProgress(List<ProgressSubmitRequest> e) =>
-      throw UnimplementedError();
 }
 
 void main() {

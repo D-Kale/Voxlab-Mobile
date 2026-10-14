@@ -232,7 +232,6 @@ class _ExerciseBody extends ConsumerWidget {
           lessonId: lessonId,
           status: LessonStatus.completed,
           score: effectiveScore,
-          exerciseType: exercise.type,
         );
 
     if (!context.mounted) return;

@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:voxlab/core/constants/app_theme.dart';
 import 'package:voxlab/core/storage/secure_storage.dart';
-import 'package:voxlab/data/remote/services/progress_api_service.dart';
 import 'package:voxlab/domain/repositories/i_auth_repository.dart';
 import 'package:voxlab/domain/models/lesson_status.dart';
 import 'package:voxlab/domain/models/progress.dart';
@@ -39,8 +38,6 @@ class _FakeAuthNotifier extends AuthNotifier {
       : super(
           _FakeAuthRepository(),
           SecureStorage(),
-          ref,
-          _FakeProgressApi(),
         ) {
     state = AuthState(
       user: User(
@@ -79,20 +76,6 @@ class _FakeAuthRepository implements IAuthRepository {
 
   @override
   String? getToken() => null;
-}
-
-class _FakeProgressApi extends ProgressApiService {
-  @override
-  Future<UserProgress> getProgress() async => throw UnimplementedError();
-
-  @override
-  Future<ProgressSubmitData> submitProgress(ProgressSubmitRequest request) =>
-      throw UnimplementedError();
-
-  @override
-  Future<ProgressSubmitData> syncProgress(
-    List<ProgressSubmitRequest> entries,
-  ) => throw UnimplementedError();
 }
 
 List<Progress> _sampleProgress() => [
