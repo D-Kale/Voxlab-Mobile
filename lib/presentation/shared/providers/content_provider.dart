@@ -6,7 +6,9 @@ import '../../../utils/exercise_name_utils.dart';
 
 final tracksProvider = FutureProvider.autoDispose<List<Track>>((ref) async {
   final repo = ref.read(contentRepositoryProvider);
-  return repo.getTracks();
+  // Inactive tracks are drafts being authored in the backend.
+  final tracks = await repo.getTracks();
+  return tracks.where((t) => t.isActive).toList();
 });
 
 final exerciseProvider = FutureProvider.autoDispose.family<Exercise, String>((
