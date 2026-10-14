@@ -43,6 +43,8 @@ List<double> _take({
   return samples;
 }
 
+int recorderLevelsSeen = 0;
+
 class _FakeRecorder implements SpeechRecorder {
   _FakeRecorder(this.samples);
 
@@ -54,7 +56,16 @@ class _FakeRecorder implements SpeechRecorder {
   Stream<double> get levels => _levels.stream;
 
   @override
-  Future<void> start() async => started = true;
+  Future<void> start() async {
+    started = true;
+    // Like the real recorder: levels start flowing right away.
+    Future(() {
+      for (final db in samples.take(5)) {
+        recorderLevelsSeen += _levels.hasListener ? 1 : 0;
+        _levels.add(((db + 60) / 60).clamp(0.0, 1.0));
+      }
+    });
+  }
 
   @override
   Future<SpeechRecording> stop() async => SpeechRecording(
@@ -205,8 +216,11 @@ void main() {
     Future<void> recordAndFinish(WidgetTester tester) async {
       await tester.tap(find.text('GRABAR'));
       await tester.pump();
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
       expect(find.text('Grabando'), findsOneWidget);
+      // The live meter consumed the levels without errors.
+      expect(recorderLevelsSeen, greaterThan(0));
+      expect(tester.takeException(), isNull);
       await tester.tap(find.text('TERMINÉ'));
       // The analysis is a chain of fake futures; give it a few frames.
       for (

@@ -60,7 +60,7 @@ class _OratoryWidgetState extends ConsumerState<OratoryWidget> {
 
   SpeechRecorder? _recorder;
   StreamSubscription<double>? _levelSub;
-  final List<double> _levels = List.filled(_meterBars, 0);
+  final List<double> _levels = List.filled(_meterBars, 0.0, growable: true);
   bool _recording = false;
 
   SessionResult? _result;
