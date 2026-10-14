@@ -231,8 +231,8 @@ class DemoSecureStorage extends SecureStorage {
 }
 
 /// In-memory progress so every demo run starts from the same state: the
-/// first two exercises done, so the map, stats and chart have something
-/// to show.
+/// first three exercises done, so the map, stats and chart have something
+/// to show and the oratory exercise (recording) is the next one.
 class DemoProgressStore extends LocalProgressStore {
   DemoProgressStore() : super.test();
 
@@ -250,6 +250,13 @@ class DemoProgressStore extends LocalProgressStore {
         lessonId: 1,
         status: LessonStatus.completed,
         score: 10,
+        completedAt: DateTime.now(),
+      ),
+      Progress(
+        exerciseId: 'd3',
+        lessonId: 1,
+        status: LessonStatus.completed,
+        score: 15,
         completedAt: DateTime.now(),
       ),
     ],
