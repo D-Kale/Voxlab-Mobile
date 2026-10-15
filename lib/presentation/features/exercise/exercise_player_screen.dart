@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/audio/music_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -75,9 +76,13 @@ class ExercisePlayerScreen extends ConsumerWidget {
       );
     }
 
-    return Scaffold(
-      backgroundColor: lessonBackground,
-      body: SafeArea(child: body),
+    // Lessons are quiet: focus, and the microphone only hears the user.
+    return MusicScope(
+      track: null,
+      child: Scaffold(
+        backgroundColor: lessonBackground,
+        body: SafeArea(child: body),
+      ),
     );
   }
 }

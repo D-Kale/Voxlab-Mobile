@@ -31,16 +31,14 @@ GoRoute _slideRoute({
       child: builder(context, state),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         return SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0.3, 0),
-            end: Offset.zero,
-          ).animate(
-            CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-              reverseCurve: Curves.easeInCubic,
-            ),
-          ),
+          position: Tween<Offset>(begin: const Offset(0.3, 0), end: Offset.zero)
+              .animate(
+                CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                  reverseCurve: Curves.easeInCubic,
+                ),
+              ),
           child: child,
         );
       },
@@ -56,17 +54,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       return AuthGuard.check(state.matchedLocation, authState);
     },
     routes: [
-      GoRoute(
-        path: AppRoutes.splash,
-        builder: (_, _) => const SplashScreen(),
-      ),
+      GoRoute(path: AppRoutes.splash, builder: (_, _) => const SplashScreen()),
       ShellRoute(
         builder: (_, _, child) => AppShell(child: child),
         routes: [
-          GoRoute(
-            path: AppRoutes.map,
-            builder: (_, _) => const MapScreen(),
-          ),
+          GoRoute(path: AppRoutes.map, builder: (_, _) => const MapScreen()),
           GoRoute(
             path: AppRoutes.practice,
             builder: (_, _) => const PracticeScreen(),
@@ -85,9 +77,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.game,
         builder: (_, state) {
           final game = GameId.fromSlug(state.pathParameters['slug'] ?? '');
-          return game == null
-              ? const PracticeScreen()
-              : GameScreen(game: game);
+          return game == null ? const PracticeScreen() : GameScreen(game: game);
         },
       ),
       _slideRoute(
@@ -100,10 +90,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           final id = state.pathParameters['id']!;
           final extra = state.extra is Map ? state.extra as Map : null;
           final lessonId = extra?['lessonId'] as int?;
-          return ExercisePlayerScreen(
-            exerciseId: id,
-            lessonId: lessonId,
-          );
+          return ExercisePlayerScreen(exerciseId: id, lessonId: lessonId);
         },
       ),
       GoRoute(

@@ -62,6 +62,7 @@ flutter:
     - assets/images/voxi_laugh.png
     - assets/images/voxi_singing.png
     - assets/sounds/
+    - assets/music/
   fonts:
     # Bundled so google_fonts finds them in the asset manifest instead of
     # fetching at runtime (offline-first + deterministic golden tests).

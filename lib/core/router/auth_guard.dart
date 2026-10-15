@@ -8,7 +8,8 @@ class AuthGuard {
   /// requires an authenticated user. Unauthenticated navigations land on
   /// the auth wall.
   static String? check(String location, AuthState authState) {
-    final isAuthRoute = location == AppRoutes.authWall ||
+    final isAuthRoute =
+        location == AppRoutes.authWall ||
         location == AppRoutes.welcome ||
         location == AppRoutes.onboarding ||
         location == AppRoutes.login ||

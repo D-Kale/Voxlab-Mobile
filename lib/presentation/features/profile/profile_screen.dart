@@ -166,7 +166,7 @@ class _SettingsCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final soundOn = ref.watch(soundEnabledProvider);
+    final audio = ref.watch(audioSettingsProvider);
     final goal =
         ref.watch(onboardingProfileProvider).valueOrNull?.dailyGoalXp ??
         OnboardingProfile.defaultDailyGoalXp;
@@ -207,27 +207,87 @@ class _SettingsCard extends ConsumerWidget {
             ),
           ),
           const Divider(height: 1, color: AppColors.cardBorder),
-          SizedBox(
-            height: 52,
-            child: Row(
-              children: [
-                Icon(
-                  soundOn ? Icons.volume_up_rounded : Icons.volume_off_rounded,
-                  color: AppColors.darkBrown,
+          _VolumeRow(
+            icon: Icons.volume_up_rounded,
+            mutedIcon: Icons.volume_off_rounded,
+            label: 'Efectos de sonido',
+            value: audio.sfx,
+            onChanged: (v) =>
+                ref.read(audioSettingsProvider.notifier).setSfx(v),
+            onChangeEnd: (_) => playSfx(context, Sfx.tap),
+          ),
+          const Divider(height: 1, color: AppColors.cardBorder),
+          _VolumeRow(
+            icon: Icons.music_note_rounded,
+            mutedIcon: Icons.music_off_rounded,
+            label: 'Música',
+            value: audio.music,
+            onChanged: (v) =>
+                ref.read(audioSettingsProvider.notifier).setMusic(v),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Label plus a volume slider; the icon shows mute at zero.
+class _VolumeRow extends StatelessWidget {
+  const _VolumeRow({
+    required this.icon,
+    required this.mutedIcon,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.onChangeEnd,
+  });
+
+  final IconData icon;
+  final IconData mutedIcon;
+  final String label;
+  final double value;
+  final ValueChanged<double> onChanged;
+  final ValueChanged<double>? onChangeEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10, right: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(value <= 0 ? mutedIcon : icon, color: AppColors.darkBrown),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.darkBrown,
+                  ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(child: Text('Efectos de sonido', style: label)),
-                Switch(
-                  value: soundOn,
-                  activeThumbColor: Colors.white,
-                  activeTrackColor: AppColors.success,
-                  onChanged: (value) {
-                    ref.read(soundEnabledProvider.notifier).set(value);
-                    if (value) playSfx(context, Sfx.tap);
-                  },
+              ),
+              Text(
+                value <= 0 ? 'Apagado' : '${(value * 100).round()} %',
+                style: GoogleFonts.dmSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.darkBrownLight,
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
+          Slider(
+            value: value,
+            divisions: 10,
+            activeColor: AppColors.success,
+            inactiveColor: AppColors.idleLip,
+            semanticFormatterCallback: (v) => '$label ${(v * 100).round()} %',
+            onChanged: onChanged,
+            onChangeEnd: onChangeEnd,
           ),
         ],
       ),

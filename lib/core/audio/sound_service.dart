@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -26,17 +28,19 @@ enum Sfx {
 /// Plays short UI sounds. Never throws: a missing audio plugin (tests) or a
 /// busy audio session just means no sound.
 class SoundService {
-  SoundService(this._isEnabled);
+  SoundService(this._volume);
 
-  final bool Function() _isEnabled;
+  /// 0 (muted) to 1.
+  final double Function() _volume;
   final Map<Sfx, AudioPlayer> _players = {};
   bool _configured = false;
   bool _broken = false;
 
   void play(Sfx sfx) {
-    if (_broken || !_isEnabled()) return;
+    final volume = _volume();
+    if (_broken || volume <= 0) return;
     unawaited(
-      _play(sfx).catchError((Object e) {
+      _play(sfx, volume).catchError((Object e) {
         // Missing plugin (widget tests) or unsupported platform: go quiet
         // for the rest of the session instead of failing every tap.
         _broken = true;
@@ -45,17 +49,10 @@ class SoundService {
     );
   }
 
-  Future<void> _play(Sfx sfx) async {
+  Future<void> _play(Sfx sfx, double volume) async {
     if (!_configured) {
       _configured = true;
-      // Mix with the user's music and respect the silent switch: these are
-      // UI sounds, not media.
-      await AudioPlayer.global.setAudioContext(
-        AudioContextConfig(
-          focus: AudioContextConfigFocus.mixWithOthers,
-          respectSilence: true,
-        ).build(),
-      );
+      await configureAudioSession();
     }
     var player = _players[sfx];
     if (player == null) {
@@ -65,6 +62,7 @@ class SoundService {
       await player.setReleaseMode(ReleaseMode.stop);
     }
     await player.stop();
+    await player.setVolume(volume);
     await player.play(AssetSource('sounds/${sfx.file}.wav'));
   }
 
@@ -76,41 +74,89 @@ class SoundService {
   }
 }
 
-/// Whether sound effects are on (persisted per device, on by default).
-class SoundEnabledNotifier extends Notifier<bool> {
-  static const _key = 'voxlab_sound_enabled';
+bool _sessionConfigured = false;
+
+/// Mix with the user's own music and respect the silent switch: UI sounds
+/// and soft background loops, not media.
+Future<void> configureAudioSession() async {
+  if (_sessionConfigured) return;
+  _sessionConfigured = true;
+  await AudioPlayer.global.setAudioContext(
+    AudioContextConfig(
+      focus: AudioContextConfigFocus.mixWithOthers,
+      respectSilence: true,
+    ).build(),
+  );
+}
+
+/// Volumes for sound effects and background music, 0..1 each.
+@immutable
+class AudioSettings {
+  const AudioSettings({this.sfx = 0.8, this.music = 0.5});
+
+  final double sfx;
+  final double music;
+
+  AudioSettings copyWith({double? sfx, double? music}) =>
+      AudioSettings(sfx: sfx ?? this.sfx, music: music ?? this.music);
+}
+
+/// Persisted per device. Replaces the old on/off switch, whose stored value
+/// is migrated (off -> effects at 0).
+class AudioSettingsNotifier extends Notifier<AudioSettings> {
+  static const _key = 'voxlab_audio_settings';
+  static const _legacyKey = 'voxlab_sound_enabled';
 
   @override
-  bool build() {
+  AudioSettings build() {
     unawaited(_load());
-    return true;
+    return const AudioSettings();
   }
 
   Future<void> _load() async {
     try {
-      final raw = await ref.read(secureStorageProvider).readString(_key);
-      if (raw != null) state = raw == 'true';
+      final storage = ref.read(secureStorageProvider);
+      final raw = await storage.readString(_key);
+      if (raw != null) {
+        final json = jsonDecode(raw) as Map<String, dynamic>;
+        state = AudioSettings(
+          sfx: (json['sfx'] as num?)?.toDouble() ?? state.sfx,
+          music: (json['music'] as num?)?.toDouble() ?? state.music,
+        );
+        return;
+      }
+      if (await storage.readString(_legacyKey) == 'false') {
+        state = state.copyWith(sfx: 0);
+      }
     } catch (_) {
-      // Keep the default.
+      // Keep the defaults.
     }
   }
 
-  Future<void> set(bool enabled) async {
-    state = enabled;
+  Future<void> setSfx(double value) => _save(state.copyWith(sfx: value));
+
+  Future<void> setMusic(double value) => _save(state.copyWith(music: value));
+
+  Future<void> _save(AudioSettings value) async {
+    state = value;
     try {
       await ref
           .read(secureStorageProvider)
-          .writeString(_key, enabled.toString());
+          .writeString(
+            _key,
+            jsonEncode({'sfx': value.sfx, 'music': value.music}),
+          );
     } catch (_) {}
   }
 }
 
-final soundEnabledProvider = NotifierProvider<SoundEnabledNotifier, bool>(
-  SoundEnabledNotifier.new,
-);
+final audioSettingsProvider =
+    NotifierProvider<AudioSettingsNotifier, AudioSettings>(
+      AudioSettingsNotifier.new,
+    );
 
 final soundServiceProvider = Provider<SoundService>((ref) {
-  final service = SoundService(() => ref.read(soundEnabledProvider));
+  final service = SoundService(() => ref.read(audioSettingsProvider).sfx);
   ref.onDispose(service.dispose);
   return service;
 });

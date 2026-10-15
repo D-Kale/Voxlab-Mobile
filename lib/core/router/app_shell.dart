@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../presentation/features/tour/app_tour.dart';
+import '../audio/music_service.dart';
 import '../constants/app_colors.dart';
 import 'routes.dart';
 
@@ -55,7 +56,7 @@ class AppShell extends StatelessWidget {
     final currentIndex = index < 0 ? 0 : index;
 
     return Scaffold(
-      body: child,
+      body: MusicScope(track: MusicTrack.map, child: child),
       bottomNavigationBar: DecoratedBox(
         decoration: const BoxDecoration(
           color: AppColors.surface,

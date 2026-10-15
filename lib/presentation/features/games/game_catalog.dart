@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/audio/music_service.dart';
+
 import '../../shared/widgets/chunky.dart';
 
 /// Skill families shown as sections on the Practice tab, in course order.
@@ -190,6 +192,17 @@ enum GameId {
   final GameSkill skill;
   final ChunkyColors colors;
   final bool usesMic;
+
+  /// Background loop while playing. Voice games stay silent so the
+  /// microphone only hears the player.
+  MusicTrack? get music => switch (this) {
+    fillerHunt || mythFact => MusicTrack.upbeatBounce,
+    bodySwipe || hookSwipe => MusicTrack.upbeatSpark,
+    breathBalloon || pausePerfect => MusicTrack.focusDrift,
+    emphasis || taboo => MusicTrack.focusTide,
+    speechBuilder => MusicTrack.focusGlass,
+    lastRow || tongueTwister || storyCards || improvWheel => null,
+  };
 
   static GameId? fromSlug(String slug) {
     for (final game in values) {

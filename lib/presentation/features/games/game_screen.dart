@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/audio/music_service.dart';
 import '../../../core/audio/sound_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../shared/providers/game_records_provider.dart';
@@ -148,24 +149,27 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: lessonBackground,
-      body: SafeArea(
-        child: switch (_phase) {
-          _Phase.intro => _Intro(
-            game: widget.game,
-            onPlay: _play,
-            onClose: _close,
-          ),
-          _Phase.play => _game(),
-          _Phase.results => _Results(
-            game: widget.game,
-            score: _score!,
-            reward: _reward!,
-            onReplay: _play,
-            onClose: _close,
-          ),
-        },
+    return MusicScope(
+      track: widget.game.music,
+      child: Scaffold(
+        backgroundColor: lessonBackground,
+        body: SafeArea(
+          child: switch (_phase) {
+            _Phase.intro => _Intro(
+              game: widget.game,
+              onPlay: _play,
+              onClose: _close,
+            ),
+            _Phase.play => _game(),
+            _Phase.results => _Results(
+              game: widget.game,
+              score: _score!,
+              reward: _reward!,
+              onReplay: _play,
+              onClose: _close,
+            ),
+          },
+        ),
       ),
     );
   }
