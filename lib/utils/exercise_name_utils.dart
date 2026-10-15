@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../domain/models/exercise.dart';
+import '../domain/models/exercise_content.dart';
 import '../domain/models/track.dart';
 
 Map<String, String> buildExerciseNameMap(List<Track> tracks) {
@@ -47,5 +49,17 @@ IconData exerciseTypeIcon(String type) {
     'audio' => Icons.headphones_outlined,
     'video' => Icons.movie_outlined,
     _ => Icons.extension_outlined,
+  };
+}
+
+/// XP an exercise awards on first completion, derived from its content.
+int exerciseXpReward(Exercise exercise) {
+  return switch (exercise.content) {
+    final QuizContent q => q.questions.length * q.pointsPerQuestion,
+    final ReadingContent r => r.points,
+    final WritingContent w => w.points,
+    final OratoryContent o => o.points,
+    final AudioContent a => a.points,
+    final VideoContent v => v.points,
   };
 }

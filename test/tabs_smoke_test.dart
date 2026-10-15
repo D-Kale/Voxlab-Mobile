@@ -4,13 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:voxlab/core/constants/app_theme.dart';
 import 'package:voxlab/core/storage/secure_storage.dart';
-import 'package:voxlab/data/remote/services/progress_api_service.dart';
 import 'package:voxlab/domain/repositories/i_auth_repository.dart';
 import 'package:voxlab/domain/models/lesson_status.dart';
 import 'package:voxlab/domain/models/progress.dart';
 import 'package:voxlab/domain/models/user.dart';
 import 'package:voxlab/presentation/features/analyze/analyze_screen.dart';
 import 'package:voxlab/presentation/features/map/map_screen.dart';
+import 'package:voxlab/presentation/features/games/game_catalog.dart';
 import 'package:voxlab/presentation/features/practice/practice_screen.dart';
 import 'package:voxlab/presentation/features/profile/profile_screen.dart';
 import 'package:voxlab/presentation/shared/providers/auth_provider.dart';
@@ -39,8 +39,6 @@ class _FakeAuthNotifier extends AuthNotifier {
       : super(
           _FakeAuthRepository(),
           SecureStorage(),
-          ref,
-          _FakeProgressApi(),
         ) {
     state = AuthState(
       user: User(
@@ -68,6 +66,9 @@ class _FakeAuthRepository implements IAuthRepository {
   Future<void> logout() async {}
 
   @override
+  Future<void> deleteAccount() async {}
+
+  @override
   Future<User> getCurrentUser() => throw UnimplementedError();
 
   @override
@@ -79,20 +80,6 @@ class _FakeAuthRepository implements IAuthRepository {
 
   @override
   String? getToken() => null;
-}
-
-class _FakeProgressApi extends ProgressApiService {
-  @override
-  Future<UserProgress> getProgress() async => throw UnimplementedError();
-
-  @override
-  Future<ProgressSubmitData> submitProgress(ProgressSubmitRequest request) =>
-      throw UnimplementedError();
-
-  @override
-  Future<ProgressSubmitData> syncProgress(
-    List<ProgressSubmitRequest> entries,
-  ) => throw UnimplementedError();
 }
 
 List<Progress> _sampleProgress() => [
@@ -128,6 +115,7 @@ void main() {
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
+    useReducedMotion(tester);
     addTearDown(tester.view.reset);
 
     final content = MaterialApp(
@@ -160,58 +148,32 @@ void main() {
   }
 
   group('Practice tab', () {
-    testWidgets('every type renders a human label, never the raw type',
-        (tester) async {
-      await pump(tester, const PracticeScreen());
-
-      // The fixture contains both 'oratory' and 'oratory_minigame'.
-      expect(find.text('Ejercicio'), findsNothing);
-      expect(find.text('oratory'), findsNothing);
-      expect(find.text('oratory_minigame'), findsNothing);
-    });
-
-    testWidgets('renders header, filter chips and every exercise',
+    testWidgets('renders the daily challenge and every minigame',
         (tester) async {
       await pump(tester, const PracticeScreen());
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Practicar Libre'), findsOneWidget);
-      expect(find.text('Todos'), findsOneWidget);
-      expect(find.text('7 ejercicios disponibles'), findsOneWidget);
-      expect(find.text('Lectura en voz alta'), findsOneWidget);
+      expect(find.text('Reto del día'), findsOneWidget);
+      for (final game in GameId.values) {
+        await tester.scrollUntilVisible(
+          find.text(game.title),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(find.text(game.title), findsOneWidget);
+      }
     });
 
-    testWidgets('filtering by type narrows the list', (tester) async {
+    testWidgets('groups games by skill', (tester) async {
       await pump(tester, const PracticeScreen());
 
-      // The type name also appears inside every exercise tile chip, so the
-      // tap must be scoped to the filter row.
-      await tester.tap(
-        find.descendant(
-          of: find.byKey(const Key('practice-type-filters')),
-          matching: find.text('Quiz'),
-        ),
+      expect(find.text(GameSkill.start.label), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text(GameSkill.improv.label),
+        200,
+        scrollable: find.byType(Scrollable).first,
       );
-      await tester.pumpAndSettle();
-
-      expect(tester.takeException(), isNull);
-      expect(find.text('2 ejercicios disponibles'), findsOneWidget);
-      expect(find.text('Lectura en voz alta'), findsNothing);
-      expect(find.text('Pronunciación'), findsWidgets);
-    });
-
-    testWidgets('one chip per kind even when the backend varies the type',
-        (tester) async {
-      await pump(tester, const PracticeScreen());
-
-      // The fixture has both 'oratory' and 'oratory_minigame'.
-      expect(
-        find.descendant(
-          of: find.byKey(const Key('practice-type-filters')),
-          matching: find.text('Oratoria'),
-        ),
-        findsOneWidget,
-      );
+      expect(find.text(GameSkill.improv.label), findsOneWidget);
     });
 
     testWidgets('no overflow on a narrow screen', (tester) async {
@@ -256,6 +218,12 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(find.text('Experiencia'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Ejercicios completados'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Ejercicios completados'), findsOneWidget);
     });
 
     testWidgets('no overflow on a narrow screen', (tester) async {

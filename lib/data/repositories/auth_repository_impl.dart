@@ -43,6 +43,15 @@ class AuthRepositoryImpl implements IAuthRepository {
   }
 
   @override
+  Future<void> deleteAccount() async {
+    // Unlike logout, a failure here must reach the user: the account would
+    // still exist.
+    await authService.deleteAccount();
+    await secureStorage.clearToken();
+    _cachedUser = null;
+  }
+
+  @override
   Future<User> getCurrentUser() async {
     if (_cachedUser != null) return _cachedUser!;
     final user = await authService.getMe();

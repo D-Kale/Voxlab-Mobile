@@ -57,6 +57,10 @@ class AuthService {
     await _dio.post('/auth/logout');
   }
 
+  Future<void> deleteAccount() async {
+    await _dio.delete('/auth/me');
+  }
+
   Future<User> getMe() async {
     final response = await _dio.get('/auth/me');
     final data = response.data['data'] as Map<String, dynamic>;

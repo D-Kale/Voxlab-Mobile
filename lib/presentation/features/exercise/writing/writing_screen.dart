@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../data/remote/services/analyzer_service.dart';
 import '../../../../domain/models/exercise_outcome.dart';
 import '../../../../domain/models/session_result.dart';
+import '../../../shared/widgets/chunky.dart';
+import '../../../shared/widgets/lesson_widgets.dart';
+import '../../../shared/widgets/motion.dart';
+import '../../../shared/widgets/voxi_mood.dart';
 
 class WritingWidget extends ConsumerStatefulWidget {
   const WritingWidget({
@@ -58,25 +63,35 @@ class _WritingWidgetState extends ConsumerState<WritingWidget> {
       _errorText = null;
     });
 
+    final text = _controller.text.trim();
+    SessionResult result;
     try {
-      final response = await ref.read(analyzerServiceProvider).analyzeText(
-            text: _controller.text.trim(),
+      final response = await ref
+          .read(analyzerServiceProvider)
+          .analyzeText(
+            text: text,
             requirements: widget.requirements,
             minWords: widget.minWords,
             maxWords: widget.maxWords,
           );
-      final outcome = ExerciseOutcome(
-        score: (response['data']?['score'] as num?)?.toInt() ??
-            widget.points,
-        sessionResult: SessionResult.fromJson(response),
+      result = SessionResult.fromJson(response);
+    } catch (e) {
+      // AI unreachable (offline, demo, expired session): score the text on
+      // the device so the session never blocks.
+      debugPrint('Writing AI unavailable, using on-device analysis: $e');
+      result = SessionResultBuilder.fromWriting(
+        text,
+        requirements: widget.requirements,
+        minWords: widget.minWords,
+        maxWords: widget.maxWords,
       );
-      widget.onCompleted?.call(outcome);
-    } catch (_) {
-      // Analyzer unreachable: degrade gracefully to the heuristic score
-      // so the session never blocks. TODO(ux): offer a retry instead of
-      // silently falling back when the backend is back online.
-      widget.onCompleted?.call(ExerciseOutcome(score: widget.points));
     }
+    if (!mounted) return;
+    // XP is the exercise reward shown before starting (+N XP); the AI score
+    // only drives the results screen.
+    widget.onCompleted?.call(
+      ExerciseOutcome(score: widget.points, sessionResult: result),
+    );
   }
 
   @override
@@ -88,183 +103,187 @@ class _WritingWidgetState extends ConsumerState<WritingWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    if (_isAnalyzing) return _buildAnalyzing(theme);
+    if (_isAnalyzing) return const _Analyzing();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Semantics(
-            label: 'Recompensa: ${widget.points} puntos de experiencia',
-            child: Row(
+    final inRange = _canSubmit;
+    final over = _wordCount > widget.maxWords;
+    final counterColor = over
+        ? AppColors.accentRed
+        : inRange
+        ? AppColors.onSuccessContainer
+        : AppColors.darkBrownLight;
+
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(top: 8, bottom: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(
-                  Icons.auto_awesome,
-                  size: 18,
-                  color: AppColors.secondary,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  '+${widget.points} XP',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: AppColors.secondary,
+                VoxiSays(text: widget.prompt),
+                if (widget.requirements.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  Text(
+                    'Tu texto tiene que incluir',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.darkBrownLight,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final r in widget.requirements)
+                        ChunkyTag(
+                          label: r,
+                          icon: Icons.check_circle_outline_rounded,
+                          color: AppColors.onSuccessContainer,
+                        ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 18),
+                TextField(
+                  controller: _controller,
+                  maxLines: null,
+                  minLines: 7,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    hintText: 'Escribí tu texto aquí...',
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    contentPadding: const EdgeInsets.all(18),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(
+                        color: AppColors.cardBorder,
+                        width: 2,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 2.5,
+                      ),
+                    ),
+                  ),
+                  style: GoogleFonts.dmSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.darkBrown,
+                    height: 1.5,
                   ),
                 ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    ChunkyTag(
+                      label: '$_wordCount / ${widget.maxWords} palabras',
+                      icon: inRange
+                          ? Icons.check_rounded
+                          : Icons.short_text_rounded,
+                      color: counterColor,
+                    ),
+                    const SizedBox(width: 8),
+                    if (!inRange)
+                      Text(
+                        over
+                            ? 'Máximo ${widget.maxWords}'
+                            : 'Mínimo ${widget.minWords}',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: counterColor,
+                        ),
+                      ),
+                  ],
+                ),
+                if (_errorText != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _errorText!,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.accentRed,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          Text(
-            widget.prompt,
-            style: theme.textTheme.titleLarge?.copyWith(height: 1.3),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 16),
+          child: ChunkyButton(
+            label: 'ENVIAR',
+            icon: Icons.auto_awesome_rounded,
+            colors: ChunkyColors.green,
+            onPressed: _canSubmit ? _submit : null,
           ),
-          const SizedBox(height: 16),
-          if (widget.requirements.isNotEmpty) ...[
-            Text(
-              'Requisitos',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: AppColors.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: widget.requirements.map(
-                (r) => Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    r,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-              ).toList(),
-            ),
-            const SizedBox(height: 24),
-          ],
-          TextField(
-            controller: _controller,
-            maxLines: null,
-            minLines: 8,
-            decoration: InputDecoration(
-              hintText: 'Escribí tu texto aquí...',
-              hintStyle: theme.textTheme.bodyLarge?.copyWith(
-                color: AppColors.onSurfaceVariant,
-              ),
-              filled: true,
-              fillColor: AppColors.surfaceContainer,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: AppColors.primary,
-                  width: 1.5,
-                ),
-              ),
-            ),
-            style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Text(
-                '$_wordCount / ${widget.maxWords} palabras',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: _wordCount > widget.maxWords
-                      ? AppColors.error
-                      : _wordCount >= widget.minWords
-                          ? AppColors.success
-                          : AppColors.onSurfaceVariant,
-                ),
-              ),
-              if (_wordCount > widget.maxWords)
-                Text(
-                  ' (mín: ${widget.minWords})',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.error,
-                  ),
-                )
-              else if (_wordCount < widget.minWords)
-                Text(
-                  ' (mín: ${widget.minWords})',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                ),
-            ],
-          ),
-          if (_errorText != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              _errorText!,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.error,
-              ),
-            ),
-          ],
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _canSubmit ? _submit : null,
-              child: const Text('Completar'),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
+}
 
-  Widget _buildAnalyzing(ThemeData theme) {
+/// Shown while the backend AI scores the text.
+class _Analyzing extends StatelessWidget {
+  const _Analyzing();
+
+  @override
+  Widget build(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Semantics(
-              excludeSemantics: true,
-              child: Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Icon(
-                  Icons.auto_awesome,
-                  size: 40,
-                  color: AppColors.primary,
-                ),
+            Bob(
+              amplitude: 6,
+              child: Image.asset(
+                VoxiMood.thinking.asset,
+                width: 120,
+                height: 120,
+                fit: BoxFit.contain,
               ),
             ),
             const SizedBox(height: 24),
             Text(
               'Analizando tu texto con IA...',
-              style: theme.textTheme.titleLarge,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.dmSans(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: AppColors.darkBrown,
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Text(
               'Estamos evaluando estructura, claridad y requisitos.',
-              style: theme.textTheme.bodyMedium,
               textAlign: TextAlign.center,
+              style: GoogleFonts.dmSans(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.darkBrownLight,
+                height: 1.4,
+              ),
             ),
-            const SizedBox(height: 32),
-            const CircularProgressIndicator(),
+            const SizedBox(height: 28),
+            const SizedBox(
+              width: 160,
+              child: LinearProgressIndicator(
+                minHeight: 10,
+                borderRadius: BorderRadius.all(Radius.circular(99)),
+                color: AppColors.success,
+                backgroundColor: AppColors.cardBorder,
+              ),
+            ),
           ],
         ),
       ),

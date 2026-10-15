@@ -1,22 +1,26 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../../../core/audio/music_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../core/network/api_exceptions.dart';
 import '../../../core/router/routes.dart';
 import '../../../domain/models/exercise.dart';
-import '../../../domain/models/exercise_content.dart';
 import '../../../domain/models/exercise_outcome.dart';
 import '../../../domain/models/lesson_status.dart';
+import '../../../utils/exercise_name_utils.dart';
 import '../../shared/providers/content_provider.dart';
 import '../../shared/providers/progress_provider.dart';
-import '../../shared/widgets/exercise_widget_factory.dart';
-import '../../shared/widgets/loading_skeleton.dart';
+import '../../shared/widgets/chunky.dart';
 import '../../shared/widgets/error_view.dart';
+import '../../shared/widgets/exercise_type_style.dart';
+import '../../shared/widgets/exercise_widget_factory.dart';
+import '../../shared/widgets/lesson_widgets.dart';
+import '../../shared/widgets/loading_skeleton.dart';
+import '../../shared/widgets/motion.dart';
 import '../../shared/widgets/voxi_state.dart';
+import '../../shared/widgets/voxi_mood.dart';
 
 class ExercisePlayerScreen extends ConsumerWidget {
   const ExercisePlayerScreen({
@@ -31,86 +35,209 @@ class ExercisePlayerScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final exerciseAsync = ref.watch(exerciseProvider(exerciseId));
+    final tracksAsync = ref.watch(tracksProvider);
+    final unlocked = ref.watch(unlockedExerciseIdsProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded),
-          tooltip: 'Cerrar',
-          onPressed: () => context.pop(),
+    Widget withTopBar(Widget child) => Column(
+      children: [
+        const _LessonTopBar(exercise: null),
+        Expanded(child: child),
+      ],
+    );
+
+    final Widget body;
+    final error = exerciseAsync.error ?? tracksAsync.error;
+    if (error != null) {
+      body = withTopBar(
+        ErrorView(
+          error: error,
+          onRetry: () {
+            ref.invalidate(exerciseProvider(exerciseId));
+            ref.invalidate(tracksProvider);
+          },
+          showVoxi: true,
+          voxiState: VoxiState.awake,
         ),
-        title: exerciseAsync.when(
-          data: (e) => Text(
-            e.name.isNotEmpty ? e.name : 'Ejercicio',
-            style: GoogleFonts.dmSans(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: AppColors.darkBrown,
-            ),
-          ),
-          loading: () => const Text(''),
-          error: (_, _) => const Text('Error'),
-        ),
-        backgroundColor: AppColors.background,
-        elevation: 0,
-      ),
-      body: exerciseAsync.when(
-        data: (exercise) => _ExerciseBody(
-          exercise: exercise,
-          lessonId: lessonId,
-        ),
-        loading: () => const Padding(
+      );
+    } else if (!exerciseAsync.hasValue || unlocked == null) {
+      body = withTopBar(
+        const Padding(
           padding: EdgeInsets.all(16),
           child: LoadingSkeleton(itemCount: 3),
         ),
-        error: (err, _) => _ExerciseErrorView(
-          error: err,
-          onRetry: () => ref.invalidate(exerciseProvider(exerciseId)),
+      );
+    } else if (!unlocked.contains(exerciseId)) {
+      // Also covers deep links: a locked exercise never starts.
+      body = withTopBar(const _LockedExercise());
+    } else {
+      body = _ExerciseBody(
+        exercise: exerciseAsync.requireValue,
+        lessonId: lessonId,
+      );
+    }
+
+    // Lessons are quiet: focus, and the microphone only hears the user.
+    return MusicScope(
+      track: null,
+      child: Scaffold(
+        backgroundColor: lessonBackground,
+        body: SafeArea(child: body),
+      ),
+    );
+  }
+}
+
+class _LockedExercise extends StatelessWidget {
+  const _LockedExercise();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          children: [
+            Bob(
+              child: Image.asset(
+                VoxiMood.bored.asset,
+                width: 130,
+                height: 130,
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: const BoxDecoration(
+                color: AppColors.idleFace,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.lock_rounded,
+                color: AppColors.darkBrownLight,
+                size: 30,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Ejercicio bloqueado',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.dmSans(
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                color: AppColors.darkBrown,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Completá los ejercicios anteriores del camino '
+              'para desbloquearlo.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.dmSans(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.darkBrownLight,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 28),
+            ChunkyButton(
+              label: 'VOLVER AL MAPA',
+              icon: Icons.map_rounded,
+              onPressed: () => context.go(AppRoutes.map),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _ExerciseErrorView extends StatelessWidget {
-  const _ExerciseErrorView({required this.error, required this.onRetry});
+/// Close button plus the exercise identity: type badge, name and XP.
+class _LessonTopBar extends StatelessWidget {
+  const _LessonTopBar({required this.exercise});
 
-  final Object error;
-  final VoidCallback onRetry;
+  final Exercise? exercise;
 
   @override
   Widget build(BuildContext context) {
-    return ErrorView(
-      error: error,
-      onRetry: onRetry,
-      showVoxi: true,
-      voxiState: VoxiState.awake,
+    final e = exercise;
+    final style = ExerciseTypeStyle.of(e?.type ?? '');
+    final xp = e == null ? 0 : exerciseXpReward(e);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 6, 16, 6),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(
+              Icons.close_rounded,
+              size: 30,
+              color: AppColors.darkBrownLight,
+            ),
+            tooltip: 'Cerrar',
+            onPressed: () => context.pop(),
+          ),
+          if (e != null) ...[
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: style.colors.face,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: style.colors.lip,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Icon(style.icon, color: style.colors.content, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    e.name.isNotEmpty ? e.name : formatExerciseType(e.type),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.darkBrown,
+                    ),
+                  ),
+                  Text(
+                    formatExerciseType(e.type),
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.darkBrownLight,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (xp > 0)
+              ChunkyTag(
+                label: '+$xp XP',
+                icon: Icons.bolt_rounded,
+                color: AppColors.accentRed,
+              ),
+          ],
+        ],
+      ),
     );
   }
 }
 
 class _ExerciseBody extends ConsumerWidget {
-  const _ExerciseBody({
-    required this.exercise,
-    required this.lessonId,
-  });
+  const _ExerciseBody({required this.exercise, required this.lessonId});
 
   final Exercise exercise;
   final int? lessonId;
-
-  int get _xpReward {
-    final content = exercise.content;
-    return switch (content) {
-      final QuizContent q => q.questions.length * q.pointsPerQuestion,
-      final ReadingContent r => r.points,
-      final WritingContent w => w.points,
-      final OratoryContent o => o.points,
-      final AudioContent a => a.points,
-      final VideoContent v => v.points,
-      _ => 10,
-    };
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -119,26 +246,30 @@ class _ExerciseBody extends ConsumerWidget {
 
     return Column(
       children: [
+        _LessonTopBar(exercise: exercise),
         if (isAlreadyCompleted)
           Container(
             width: double.infinity,
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: AppColors.successContainer,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.success, width: 2),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
               children: [
-                Icon(Icons.refresh_rounded, size: 20, color: AppColors.success),
+                const Icon(
+                  Icons.replay_rounded,
+                  size: 20,
+                  color: AppColors.onSuccessContainer,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Ya completaste este ejercicio. Repasalo sin sumar puntos.',
                     style: GoogleFonts.dmSans(
                       fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       color: AppColors.onSuccessContainer,
                     ),
                   ),
@@ -146,64 +277,6 @@ class _ExerciseBody extends ConsumerWidget {
               ],
             ),
           ),
-        // Header with Voxi + XP/Type badges
-        Container(
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.accentRed, width: 3),
-            boxShadow: const [
-              BoxShadow(
-                color: AppColors.accentRed,
-                offset: Offset(0, 4),
-                blurRadius: 0,
-                spreadRadius: 0,
-              ),
-              BoxShadow(
-                color: Color(0x33D93B27),
-                offset: Offset(0, 2),
-                blurRadius: 8,
-                spreadRadius: 0,
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Image.asset(
-                'assets/images/voxi_awake.png',
-                width: 40,
-                height: 40,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      exercise.name.isNotEmpty ? exercise.name : 'Ejercicio',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.darkBrown,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        _TypeBadge(type: exercise.type),
-                        const SizedBox(width: 8),
-                        _XpBadge(xp: _xpReward),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -227,121 +300,25 @@ class _ExerciseBody extends ConsumerWidget {
     final isAlreadyCompleted = completedIds.contains(exercise.id);
     final effectiveScore = isAlreadyCompleted ? 0 : outcome.score;
 
-    await ref.read(progressNotifierProvider.notifier).saveProgress(
+    await ref
+        .read(progressNotifierProvider.notifier)
+        .saveProgress(
           exerciseId: exercise.id,
           lessonId: lessonId,
           status: LessonStatus.completed,
           score: effectiveScore,
-          exerciseType: exercise.type,
         );
 
     if (!context.mounted) return;
-    context.go(AppRoutes.exerciseComplete, extra: {
-      'score': effectiveScore,
-      'type': exercise.type,
-      'name': exercise.name,
-      'isReview': isAlreadyCompleted,
-      'sessionResult': outcome.sessionResult,
-    });
-  }
-}
-
-class _TypeBadge extends StatelessWidget {
-  const _TypeBadge({required this.type});
-
-  final String type;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.primaryContainer,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.accentRed, width: 2),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            _iconForType(type),
-            size: 14,
-            color: AppColors.primary,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            _labelForType(type),
-            style: GoogleFonts.dmSans(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppColors.primary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  IconData _iconForType(String type) {
-    switch (type) {
-      case 'quiz':
-        return Icons.quiz_rounded;
-      case 'reading':
-        return Icons.menu_book_rounded;
-      case 'writing':
-        return Icons.edit_rounded;
-      case 'oratory':
-        return Icons.mic_rounded;
-      default:
-        return Icons.help_outline;
-    }
-  }
-
-  String _labelForType(String type) {
-    switch (type) {
-      case 'quiz':
-        return 'Quiz';
-      case 'reading':
-        return 'Lectura';
-      case 'writing':
-        return 'Escritura';
-      case 'oratory':
-        return 'Oratoria';
-      default:
-        return type;
-    }
-  }
-}
-
-class _XpBadge extends StatelessWidget {
-  const _XpBadge({required this.xp});
-
-  final int xp;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.accentRedContainer,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.accentRed, width: 2),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.auto_awesome_rounded, size: 14, color: AppColors.accentRed),
-          const SizedBox(width: 4),
-          Text(
-            '+$xp XP',
-            style: GoogleFonts.dmSans(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppColors.accentRed,
-            ),
-          ),
-        ],
-      ),
+    context.go(
+      AppRoutes.exerciseComplete,
+      extra: {
+        'score': effectiveScore,
+        'type': exercise.type,
+        'name': exercise.name,
+        'isReview': isAlreadyCompleted,
+        'sessionResult': outcome.sessionResult,
+      },
     );
   }
 }

@@ -7,10 +7,14 @@ import '../../presentation/features/auth/register_screen.dart';
 import '../../presentation/features/analyze/analyze_screen.dart';
 import '../../presentation/features/profile/profile_screen.dart';
 import '../../presentation/features/map/map_screen.dart';
+import '../../presentation/features/onboarding/onboarding_screen.dart';
+import '../../presentation/features/onboarding/welcome_screen.dart';
 import '../../presentation/features/practice/practice_screen.dart';
 import '../../presentation/features/splash/splash_screen.dart';
 import '../../presentation/features/exercise/exercise_player_screen.dart';
 import '../../presentation/features/exercise/exercise_complete_screen.dart';
+import '../../presentation/features/games/game_catalog.dart';
+import '../../presentation/features/games/game_screen.dart';
 import '../../presentation/shared/providers/auth_provider.dart';
 import 'app_shell.dart';
 import 'auth_guard.dart';
@@ -27,16 +31,14 @@ GoRoute _slideRoute({
       child: builder(context, state),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         return SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0.3, 0),
-            end: Offset.zero,
-          ).animate(
-            CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-              reverseCurve: Curves.easeInCubic,
-            ),
-          ),
+          position: Tween<Offset>(begin: const Offset(0.3, 0), end: Offset.zero)
+              .animate(
+                CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                  reverseCurve: Curves.easeInCubic,
+                ),
+              ),
           child: child,
         );
       },
@@ -52,17 +54,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       return AuthGuard.check(state.matchedLocation, authState);
     },
     routes: [
-      GoRoute(
-        path: AppRoutes.splash,
-        builder: (_, _) => const SplashScreen(),
-      ),
+      GoRoute(path: AppRoutes.splash, builder: (_, _) => const SplashScreen()),
       ShellRoute(
         builder: (_, _, child) => AppShell(child: child),
         routes: [
-          GoRoute(
-            path: AppRoutes.map,
-            builder: (_, _) => const MapScreen(),
-          ),
+          GoRoute(path: AppRoutes.map, builder: (_, _) => const MapScreen()),
           GoRoute(
             path: AppRoutes.practice,
             builder: (_, _) => const PracticeScreen(),
@@ -78,6 +74,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       _slideRoute(
+        path: AppRoutes.game,
+        builder: (_, state) {
+          final game = GameId.fromSlug(state.pathParameters['slug'] ?? '');
+          return game == null ? const PracticeScreen() : GameScreen(game: game);
+        },
+      ),
+      _slideRoute(
         path: AppRoutes.exerciseComplete,
         builder: (_, _) => const ExerciseCompleteScreen(),
       ),
@@ -87,11 +90,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           final id = state.pathParameters['id']!;
           final extra = state.extra is Map ? state.extra as Map : null;
           final lessonId = extra?['lessonId'] as int?;
-          return ExercisePlayerScreen(
-            exerciseId: id,
-            lessonId: lessonId,
-          );
+          return ExercisePlayerScreen(exerciseId: id, lessonId: lessonId);
         },
+      ),
+      GoRoute(
+        path: AppRoutes.welcome,
+        builder: (_, _) => const WelcomeScreen(),
+      ),
+      _slideRoute(
+        path: AppRoutes.onboarding,
+        builder: (_, _) => const OnboardingScreen(),
       ),
       _slideRoute(
         path: AppRoutes.authWall,

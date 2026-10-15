@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
+import '../../shared/widgets/chunky.dart';
+import '../../shared/widgets/lesson_widgets.dart';
+import '../../shared/widgets/motion.dart';
 import '../../shared/providers/auth_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -34,11 +38,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      final error = await ref.read(authProvider.notifier).register(
-        _nameController.text.trim(),
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
+      final error = await ref
+          .read(authProvider.notifier)
+          .register(
+            _nameController.text.trim(),
+            _emailController.text.trim(),
+            _passwordController.text,
+          );
 
       if (error == null && mounted) {
         context.go(AppRoutes.map);
@@ -52,16 +58,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final extra = GoRouterState.of(context).extra;
+    // Last step of the first-run onboarding: keep its progress bar and copy.
+    final fromOnboarding = extra is Map && extra['fromOnboarding'] == true;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_rounded),
           tooltip: 'Volver',
-          onPressed: () => context.pop(),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go(AppRoutes.authWall),
         ),
-        title: const Text('Crear cuenta'),
+        title: fromOnboarding
+            ? const SizedBox(width: 220, child: LessonProgressBar(value: 1))
+            : null,
+        backgroundColor: AppColors.background,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -70,22 +84,47 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 32),
-              const Text(
-                'Empezá tu viaje',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.onSurface,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Creá tu cuenta y no pierdas tu progreso',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.onSurfaceVariant,
-                ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Bob(
+                    child: Image.asset(
+                      'assets/images/voxi_awake.png',
+                      width: 72,
+                      height: 72,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          fromOnboarding ? '¡Último paso!' : 'Empezá tu viaje',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.darkBrown,
+                            height: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          fromOnboarding
+                              ? 'Creá tu perfil para guardar tu plan y tu '
+                                    'progreso.'
+                              : 'Creá tu cuenta y no pierdas tu progreso',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.darkBrownLight,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 32),
               if (authState.error != null) ...[
@@ -189,14 +228,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 },
               ),
               const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: authState.isLoading ? null : _register,
-                  child: Text(
-                    authState.isLoading ? 'Creando cuenta…' : 'Crear cuenta',
-                  ),
-                ),
+              ChunkyButton(
+                label: authState.isLoading ? 'CREANDO CUENTA…' : 'CREAR CUENTA',
+                icon: Icons.person_add_rounded,
+                onPressed: authState.isLoading ? null : _register,
               ),
               const SizedBox(height: 16),
               Center(

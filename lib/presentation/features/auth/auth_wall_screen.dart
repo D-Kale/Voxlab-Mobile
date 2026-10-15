@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
+import '../../shared/widgets/chunky.dart';
+import '../../shared/widgets/motion.dart';
 
 class AuthWallScreen extends StatelessWidget {
   const AuthWallScreen({super.key});
@@ -23,11 +25,18 @@ class AuthWallScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.asset(
-                    'assets/images/voxi_awake.png',
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.contain,
+                  EntranceAnimation(
+                    scaleFrom: 0.4,
+                    duration: const Duration(milliseconds: 650),
+                    child: Bob(
+                      amplitude: 6,
+                      child: Image.asset(
+                        'assets/images/voxi_awake.png',
+                        width: 150,
+                        height: 150,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 32),
                   Text(
@@ -53,24 +62,26 @@ class AuthWallScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 48),
-                  _VoxLabButton(
-                    label: 'Crear cuenta gratis',
-                    onPressed: () => context.pushReplacement(AppRoutes.register),
-                    color: AppColors.accentRed,
+                  ChunkyButton(
+                    label: 'CREAR CUENTA GRATIS',
+                    onPressed: () => context.push(AppRoutes.register),
                     icon: Icons.person_add_rounded,
                   ),
-                  const SizedBox(height: 16),
-                  _VoxLabButton(
-                    label: 'Ya tengo cuenta',
-                    onPressed: () => context.pushReplacement(AppRoutes.login),
-                    color: Colors.white,
-                    borderColor: AppColors.accentRed,
-                    textColor: AppColors.accentRed,
+                  const SizedBox(height: 14),
+                  ChunkyButton(
+                    label: 'YA TENGO CUENTA',
+                    onPressed: () => context.push(AppRoutes.login),
+                    colors: const ChunkyColors(
+                      face: AppColors.surface,
+                      lip: AppColors.cardLip,
+                      content: AppColors.accentRed,
+                      border: AppColors.cardBorder,
+                    ),
                     icon: Icons.login_rounded,
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'Tu progreso actual se guardará automáticamente',
+                    'Es gratis y te lleva menos de un minuto.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.dmSans(
                       fontSize: 12,
@@ -80,80 +91,6 @@ class AuthWallScreen extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _VoxLabButton extends StatelessWidget {
-  const _VoxLabButton({
-    required this.label,
-    required this.onPressed,
-    required this.color,
-    this.borderColor,
-    this.textColor,
-    this.icon,
-  });
-
-  final String label;
-  final VoidCallback onPressed;
-  final Color color;
-  final Color? borderColor;
-  final Color? textColor;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final effectiveBorderColor = borderColor ?? color;
-    final effectiveTextColor = textColor ?? Colors.white;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(24),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: effectiveBorderColor, width: 3.5),
-            boxShadow: [
-              BoxShadow(
-                color: effectiveBorderColor,
-                offset: const Offset(0, 5),
-                blurRadius: 0,
-                spreadRadius: 0,
-              ),
-              BoxShadow(
-                color: effectiveBorderColor.withValues(alpha: 0.2),
-                offset: const Offset(0, 2),
-                blurRadius: 8,
-                spreadRadius: 0,
-              ),
-            ],
-          ),
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (icon != null) ...[
-                  Icon(icon, size: 20, color: effectiveTextColor),
-                  const SizedBox(width: 10),
-                ],
-                Text(
-                  label,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: effectiveTextColor,
-                  ),
-                ),
-              ],
             ),
           ),
         ),

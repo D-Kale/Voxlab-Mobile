@@ -32,7 +32,7 @@ class XpBar extends StatelessWidget {
             children: [
               Semantics(
                 excludeSemantics: true,
-                child: Icon(Icons.auto_awesome_rounded, size: 16, color: AppColors.accentRed),
+                child: Icon(Icons.bolt_rounded, size: 18, color: AppColors.primary),
               ),
               const SizedBox(width: 6),
               Text(
@@ -59,9 +59,8 @@ class XpBar extends StatelessWidget {
             height: 16,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: AppColors.surfaceContainerHigh,
+              color: AppColors.idleFace,
               borderRadius: BorderRadius.circular(100),
-              border: Border.all(color: AppColors.accentRed, width: 2.5),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(100),
@@ -76,18 +75,20 @@ class XpBar extends StatelessWidget {
                     child: child,
                   );
                 },
+                // Duolingo-style fill with a glossy stripe on top.
                 child: Container(
+                  alignment: Alignment.topCenter,
+                  padding: const EdgeInsets.fromLTRB(8, 3, 8, 0),
                   decoration: BoxDecoration(
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(100),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.4),
-                        offset: const Offset(0, 2),
-                        blurRadius: 4,
-                        spreadRadius: 0,
-                      ),
-                    ],
+                  ),
+                  child: Container(
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
                   ),
                 ),
               ),

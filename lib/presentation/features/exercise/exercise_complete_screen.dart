@@ -2,27 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/audio/sound_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
 import '../../../domain/models/session_result.dart';
-import '../../shared/widgets/insight_card.dart';
-import '../../shared/widgets/pill_badge.dart';
-import '../../shared/widgets/score_ring.dart';
-import '../../shared/widgets/section_header.dart';
+import '../../shared/widgets/chunky.dart';
+import '../../shared/widgets/lesson_widgets.dart';
+import '../../shared/widgets/motion.dart';
 import '../../shared/widgets/skill_bar.dart';
-import '../../shared/widgets/voxi_state.dart';
-import '../../../utils/exercise_name_utils.dart';
+import '../../shared/widgets/voxi_mood.dart';
 
 class ExerciseCompleteScreen extends StatefulWidget {
   const ExerciseCompleteScreen({super.key});
 
   @override
-  State<ExerciseCompleteScreen> createState() =>
-      _ExerciseCompleteScreenState();
+  State<ExerciseCompleteScreen> createState() => _ExerciseCompleteScreenState();
 }
 
 class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
   bool _isNavigating = false;
+  bool _soundPlayed = false;
 
   void goBack() {
     if (_isNavigating) return;
@@ -34,11 +33,15 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
   Widget build(BuildContext context) {
     final extra = GoRouterState.of(context).extra as Map<String, dynamic>?;
     final score = (extra?['score'] as int?) ?? 0;
-    final type = (extra?['type'] as String?) ?? '';
-    final name = (extra?['name'] as String?) ?? '';
     final isReview = (extra?['isReview'] as bool?) ?? false;
     final aiResult = extra?['sessionResult'] as SessionResult?;
     final result = aiResult ?? SessionResultBuilder.fromScore(score);
+    if (!_soundPlayed) {
+      _soundPlayed = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) playSfx(context, isReview ? Sfx.pop : Sfx.complete);
+      });
+    }
 
     return PopScope(
       canPop: false,
@@ -46,194 +49,369 @@ class _ExerciseCompleteScreenState extends State<ExerciseCompleteScreen> {
         if (!didPop) goBack();
       },
       child: Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(
-          title: Image.asset(
-            'assets/images/voxi_logo.png',
-            height: 28,
-            fit: BoxFit.contain,
+        backgroundColor: lessonBackground,
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+                      children: [
+                        _Hero(
+                          isReview: isReview,
+                          level: result.level,
+                          score: result.overall,
+                        ),
+                        const SizedBox(height: 22),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: EntranceAnimation(
+                                delay: const Duration(milliseconds: 250),
+                                child: _ResultStat(
+                                  label: 'XP GANADA',
+                                  icon: Icons.bolt_rounded,
+                                  value: score,
+                                  prefix: '+',
+                                  color: AppColors.gold,
+                                  ink: AppColors.goldDark,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: EntranceAnimation(
+                                delay: const Duration(milliseconds: 350),
+                                child: _ResultStat(
+                                  label: 'PUNTAJE',
+                                  icon: Icons.track_changes_rounded,
+                                  value: result.overall,
+                                  suffix: '%',
+                                  color: AppColors.success,
+                                  ink: AppColors.successDark,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (result.readabilityLabel != null ||
+                            result.fillerWords != null) ...[
+                          const SizedBox(height: 14),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              if (result.readabilityLabel != null)
+                                ChunkyTag(
+                                  label: result.readabilityLabel!,
+                                  icon: Icons.menu_book_rounded,
+                                  color: AppColors.onPrimaryContainer,
+                                ),
+                              if (result.fillerWords != null)
+                                ChunkyTag(
+                                  label: '${result.fillerWords} muletillas',
+                                  icon: Icons.graphic_eq_rounded,
+                                  color: AppColors.accentRedDark,
+                                ),
+                            ],
+                          ),
+                        ],
+                        if (result.skills.isNotEmpty) ...[
+                          const SizedBox(height: 22),
+                          EntranceAnimation(
+                            delay: const Duration(milliseconds: 450),
+                            child: ChunkyCard(
+                              padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const _CardTitle('Desglose de habilidades'),
+                                  const SizedBox(height: 14),
+                                  for (final skill in result.skills)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 14,
+                                      ),
+                                      child: SkillBar(
+                                        icon: skill.icon,
+                                        label: skill.label,
+                                        percent: skill.percent,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (result.aiFeedback != null) ...[
+                          const SizedBox(height: 14),
+                          EntranceAnimation(
+                            delay: const Duration(milliseconds: 500),
+                            child: AiCoachCard(text: result.aiFeedback!),
+                          ),
+                        ],
+                        if (result.tips.isNotEmpty) ...[
+                          const SizedBox(height: 14),
+                          EntranceAnimation(
+                            delay: const Duration(milliseconds: 550),
+                            child: ChunkyCard(
+                              padding: const EdgeInsets.fromLTRB(18, 16, 18, 6),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _CardTitle(
+                                    result.byAi
+                                        ? 'Consejos de la IA'
+                                        : 'Consejos',
+                                  ),
+                                  const SizedBox(height: 12),
+                                  for (final tip in result.tips)
+                                    _TipRow(tip: tip),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    child: ChunkyButton(
+                      label: 'CONTINUAR',
+                      colors: ChunkyColors.green,
+                      onPressed: goBack,
+                    ),
+                  ),
+                ],
+              ),
+              if (!isReview)
+                const Positioned.fill(
+                  child: ConfettiBurst(
+                    colors: [
+                      AppColors.accentRed,
+                      AppColors.success,
+                      AppColors.gold,
+                      AppColors.primary,
+                      AppColors.darkBrown,
+                    ],
+                  ),
+                ),
+            ],
           ),
-          backgroundColor: AppColors.background,
-          elevation: 0,
         ),
-        body: ListView(
-          padding: const EdgeInsets.all(24),
+      ),
+    );
+  }
+}
+
+class _Hero extends StatelessWidget {
+  const _Hero({
+    required this.isReview,
+    required this.level,
+    required this.score,
+  });
+
+  final bool isReview;
+  final String level;
+
+  /// Session score (0-100): picks Voxi's reaction.
+  final int score;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        EntranceAnimation(
+          scaleFrom: 0.3,
+          offsetY: 30,
+          duration: const Duration(milliseconds: 650),
+          child: Bob(
+            amplitude: 6,
+            child: Image.asset(
+              isReview ? VoxiMood.idle.asset : VoxiMood.forScore(score).asset,
+              width: 140,
+              height: 140,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        EntranceAnimation(
+          delay: const Duration(milliseconds: 120),
+          child: Text(
+            isReview ? '¡Repaso completado!' : '¡Ejercicio completado!',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.dmSans(
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              color: AppColors.primaryDark,
+              height: 1.15,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        EntranceAnimation(
+          delay: const Duration(milliseconds: 180),
+          child: Text(
+            level,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.dmSans(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: AppColors.darkBrownLight,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Duolingo-style result card: colored header label, white body with an
+/// icon and a number that counts up.
+class _ResultStat extends StatelessWidget {
+  const _ResultStat({
+    required this.label,
+    required this.icon,
+    required this.value,
+    required this.color,
+    required this.ink,
+    this.prefix = '',
+    this.suffix = '',
+  });
+
+  final String label;
+  final IconData icon;
+  final int value;
+  final Color color;
+  final Color ink;
+  final String prefix;
+  final String suffix;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '$label: $prefix$value$suffix',
+      excludeSemantics: true,
+      child: Container(
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [BoxShadow(color: ink, offset: const Offset(0, 4))],
+        ),
+        padding: const EdgeInsets.all(3),
+        child: Column(
           children: [
-            // Header with Voxi celebration
-            Column(
-              children: [
-                Image.asset(
-                  'assets/images/voxi_awake.png',
-                  width: 100,
-                  height: 100,
-                  fit: BoxFit.contain,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  isReview ? '¡Repaso completado!' : '¡Gran esfuerzo!',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.darkBrown,
-                    height: 1.2,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Acá tenés el desglose de tu presentación.',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.darkBrownLight,
-                    height: 1.4,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-            if (name.isNotEmpty || score > 0) ...[
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (score > 0) ...[
-                    PillBadge(
-                      icon: Icons.auto_awesome_rounded,
-                      label: '+$score XP',
-                      style: PillBadgeStyle.xp,
-                      showVoxi: false,
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  if (name.isNotEmpty)
-                    PillBadge(
-                      icon: exerciseTypeIcon(type),
-                      label: formatExerciseType(type),
-                      style: PillBadgeStyle.streak,
-                      showVoxi: false,
-                    ),
-                ],
-              ),
-            ],
-            if (result.readabilityLabel != null ||
-                result.fillerWords != null) ...[
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (result.readabilityLabel != null)
-                    PillBadge(
-                      icon: Icons.menu_book_rounded,
-                      label: result.readabilityLabel!,
-                      style: PillBadgeStyle.xp,
-                      showVoxi: false,
-                    ),
-                  if (result.readabilityLabel != null &&
-                      result.fillerWords != null)
-                    const SizedBox(width: 8),
-                  if (result.fillerWords != null)
-                    PillBadge(
-                      icon: Icons.graphic_eq_rounded,
-                      label: '${result.fillerWords} muletillas',
-                      style: PillBadgeStyle.streak,
-                      showVoxi: false,
-                    ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 24),
-            Center(
-              child: ScoreRing(
-                score: result.overall,
-                size: 200,
-                centerLabel: 'DE 100',
-                showVoxi: true,
-                voxiState: VoxiState.awake,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Text(
+                label,
+                style: GoogleFonts.dmSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: AppColors.accentRed, width: 3),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: AppColors.accentRed,
-                      offset: Offset(0, 4),
-                      blurRadius: 0,
-                      spreadRadius: 0,
+                ),
+              ),
+            ),
+            Container(
+              height: 58,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, color: ink, size: 26),
+                  const SizedBox(width: 6),
+                  TweenAnimationBuilder<int>(
+                    tween: IntTween(begin: 0, end: value),
+                    duration: const Duration(milliseconds: 1100),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, v, _) => Text(
+                      '$prefix$v$suffix',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        color: ink,
+                      ),
                     ),
-                  ],
-                ),
-                child: Text(
-                  'Nivel: ${result.level}',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.darkBrown,
                   ),
-                ),
+                ],
               ),
             ),
-            const SizedBox(height: 32),
-            SectionHeader(
-              title: 'Desglose de Habilidades',
-              icon: Icons.insights_rounded,
-              showVoxi: true,
-              voxiState: VoxiState.awake,
-            ),
-            const SizedBox(height: 12),
-            for (final skill in result.skills)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: SkillBar(
-                  icon: skill.icon,
-                  label: skill.label,
-                  percent: skill.percent,
-                ),
-              ),
-            const SizedBox(height: 16),
-            InsightCard(
-              title: 'Consejos de la IA',
-              items: [
-                for (final tip in result.tips)
-                  InsightItem(
-                    icon: tip.isPositive
-                        ? Icons.check_circle_rounded
-                        : Icons.arrow_upward_rounded,
-                    text: tip.text,
-                    highlight: tip.isPositive,
-                  ),
-              ],
-              showVoxi: true,
-              voxiState: VoxiState.awake,
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: goBack,
-                child: const Text('Continuar'),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: goBack,
-                child: const Text('Volver al mapa'),
-              ),
-            ),
-            const SizedBox(height: 24),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CardTitle extends StatelessWidget {
+  const _CardTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: GoogleFonts.dmSans(
+        fontSize: 18,
+        fontWeight: FontWeight.w900,
+        color: AppColors.darkBrown,
+      ),
+    );
+  }
+}
+
+class _TipRow extends StatelessWidget {
+  const _TipRow({required this.tip});
+
+  final SessionTip tip;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = tip.isPositive ? AppColors.success : AppColors.primary;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              tip.isPositive ? Icons.check_rounded : Icons.trending_up_rounded,
+              size: 18,
+              color: tip.isPositive
+                  ? AppColors.onSuccessContainer
+                  : AppColors.onPrimaryContainer,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              tip.text,
+              style: GoogleFonts.dmSans(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.darkBrown,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

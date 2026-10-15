@@ -1,135 +1,96 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../domain/models/exercise.dart';
+import '../../../shared/widgets/chunky.dart';
 import 'map_geometry.dart';
 
-enum PathNodeState { completed, current, pending }
-
-class CircularPathNode extends StatelessWidget {
-  const CircularPathNode({
+/// Oval 3D map button: a colored face over a darker lip that sinks on press.
+class PathNodeButton extends StatelessWidget {
+  const PathNodeButton({
     super.key,
-    required this.state,
-    required this.diameter,
-    required this.background,
-    required this.borderColor,
-    required this.borderWidth,
-    required this.iconData,
-    required this.iconColor,
-    required this.iconSize,
-    this.completionBadge = false,
-    this.voxiAsset,
+    required this.colors,
+    required this.icon,
+    required this.semanticsLabel,
+    this.iconSize = 34,
     this.onTap,
-    this.semanticsLabel,
   });
 
-  final PathNodeState state;
-  final double diameter;
-  final Color background;
-  final Color borderColor;
-  final double borderWidth;
-  final IconData iconData;
-  final Color iconColor;
+  final ChunkyColors colors;
+  final IconData icon;
   final double iconSize;
-  final bool completionBadge;
-
-  /// When non-null, shows the Voxi mascot badge at the bottom-right.
-  final String? voxiAsset;
+  final String semanticsLabel;
   final VoidCallback? onTap;
-  final String? semanticsLabel;
 
-  List<BoxShadow> get shadows {
-    switch (state) {
-      case PathNodeState.current:
-        return [
-          BoxShadow(
-            color: AppColors.accentRed,
-            offset: const Offset(0, 6),
-            blurRadius: 0,
-            spreadRadius: 0,
-          ),
-          BoxShadow(
-            color: AppColors.accentRed.withValues(alpha: 0.3),
-            offset: const Offset(0, 0),
-            blurRadius: 12,
-            spreadRadius: 2,
-          ),
-        ];
-      case PathNodeState.completed:
-        return [
-          BoxShadow(
-            color: AppColors.success.withValues(alpha: 0.4),
-            offset: const Offset(0, 4),
-            blurRadius: 8,
-            spreadRadius: 1,
-          ),
-        ];
-      case PathNodeState.pending:
-        return [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            offset: const Offset(0, 2),
-            blurRadius: 4,
-            spreadRadius: 0,
-          ),
-        ];
-    }
-  }
+  static const double _size = MapGeometry.nodeDiameter;
+  static const double _depth = MapGeometry.nodeDepth;
+  static const double _faceHeight = _size - _depth;
+  static const _oval = BorderRadius.all(
+    Radius.elliptical(_size / 2, _faceHeight / 2),
+  );
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      enabled: onTap != null,
-      label: semanticsLabel ?? '',
-      child: GestureDetector(
+      label: semanticsLabel,
+      excludeSemantics: true,
+      child: Pressable(
         onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          width: diameter,
-          height: diameter,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: background,
-            border: Border.all(color: borderColor, width: borderWidth),
-            boxShadow: shadows,
-          ),
+        builder: (pressed) => SizedBox.square(
+          dimension: _size,
           child: Stack(
-            alignment: Alignment.center,
             children: [
-              Icon(iconData, size: iconSize, color: iconColor),
-              if (voxiAsset != null)
-                Positioned(
-                  bottom: 2,
-                  right: 2,
-                  child: Image.asset(
-                    voxiAsset!,
-                    width: diameter * 0.34,
-                    height: diameter * 0.34,
-                    fit: BoxFit.contain,
+              Positioned(
+                left: 0,
+                right: 0,
+                top: _depth,
+                height: _faceHeight,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colors.lip,
+                    borderRadius: _oval,
                   ),
                 ),
-              if (completionBadge)
-                Positioned(
-                  top: 2,
-                  right: 2,
-                  child: Container(
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: AppColors.success,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: const Icon(
-                      Icons.check_rounded,
-                      size: 11,
-                      color: Colors.white,
-                    ),
+              ),
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 70),
+                curve: Curves.easeOut,
+                left: 0,
+                right: 0,
+                top: pressed ? _depth : 0,
+                height: _faceHeight,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colors.face,
+                    borderRadius: _oval,
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Glossy highlight that sells the 3D face.
+                      Positioned(
+                        top: 9,
+                        left: 17,
+                        child: Transform.rotate(
+                          angle: -0.5,
+                          child: Container(
+                            width: 16,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.32),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Icon(icon, size: iconSize, color: colors.content),
+                    ],
                   ),
                 ),
+              ),
             ],
           ),
         ),
@@ -138,260 +99,232 @@ class CircularPathNode extends StatelessWidget {
   }
 }
 
-/// Horizontal unit header: number badge + full title.
-///
-/// Replaces the old circular node that crammed the title into a 72px circle.
-class UnitBanner extends StatelessWidget {
-  const UnitBanner({
+/// Ring around the current node: white track plus an arc showing how much
+/// of the unit is done.
+class UnitProgressRing extends StatelessWidget {
+  const UnitProgressRing({
     super.key,
-    required this.state,
-    required this.unitNumber,
-    required this.title,
-    this.onTap,
+    required this.progress,
+    required this.color,
+    this.diameter = 104,
   });
 
-  final PathNodeState state;
-  final int unitNumber;
-  final String title;
-  final VoidCallback? onTap;
-
-  static const double _badgeSize = 40.0;
+  final double progress;
+  final Color color;
+  final double diameter;
 
   @override
   Widget build(BuildContext context) {
-    final isCompleted = state == PathNodeState.completed;
-    final isCurrent = state == PathNodeState.current;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: progress),
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, _) => CustomPaint(
+        size: Size.square(diameter),
+        painter: _RingPainter(progress: value, color: color),
+      ),
+    );
+  }
+}
 
-    final badgeBorderColor = isCompleted
-        ? AppColors.success
-        : isCurrent
-            ? AppColors.accentRed
-            : AppColors.darkBrown.withValues(alpha: 0.18);
-    final badgeTextColor = isCompleted
-        ? AppColors.success
-        : isCurrent
-            ? AppColors.accentRed
-            : AppColors.onLocked;
+class _RingPainter extends CustomPainter {
+  _RingPainter({required this.progress, required this.color});
 
-    return Semantics(
-      button: true,
-      label: 'Unidad $unitNumber: $title',
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isCompleted ? AppColors.success : AppColors.accentRed,
-              width: 3.5,
+  final double progress;
+  final Color color;
+
+  static const double _stroke = 8;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final ring = rect.deflate(_stroke / 2);
+    canvas.drawOval(
+      ring,
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.75)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = _stroke,
+    );
+    if (progress <= 0) return;
+    canvas.drawArc(
+      ring,
+      -math.pi / 2,
+      2 * math.pi * progress.clamp(0, 1),
+      false,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = _stroke
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) =>
+      old.progress != progress || old.color != color;
+}
+
+/// "EMPEZAR" call-out above the current node, with a pointer to it.
+class StartBubble extends StatelessWidget {
+  const StartBubble({super.key, required this.color, this.label = 'EMPEZAR'});
+
+  final Color color;
+  final String label;
+
+  static const double height = 42;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: height,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.cardBorder, width: 2),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: isCompleted ? AppColors.success : AppColors.accentRed,
-                offset: const Offset(0, 4),
-                blurRadius: 0,
-                spreadRadius: 0,
+            child: Text(
+              label,
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.8,
+                height: 1.2,
+                color: color,
               ),
-              const BoxShadow(
-                color: Color(0x33D93B27),
-                offset: Offset(0, 2),
-                blurRadius: 8,
-                spreadRadius: 0,
-              ),
-            ],
+            ),
           ),
+          CustomPaint(size: const Size(16, 8), painter: _PointerPainter()),
+        ],
+      ),
+    );
+  }
+}
+
+class _PointerPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(0, -2)
+      ..lineTo(size.width / 2, size.height)
+      ..lineTo(size.width, -2)
+      ..close();
+    canvas.drawPath(path, Paint()..color = Colors.white);
+  }
+
+  @override
+  bool shouldRepaint(_PointerPainter old) => false;
+}
+
+/// Colored unit header, pinned while its unit scrolls (Duolingo-style).
+class UnitHeader extends StatelessWidget {
+  const UnitHeader({
+    super.key,
+    required this.colors,
+    required this.unitNumber,
+    required this.title,
+    required this.doneCount,
+    required this.totalCount,
+    this.onGuide,
+  });
+
+  final ChunkyColors colors;
+  final int unitNumber;
+  final String title;
+  final int doneCount;
+  final int totalCount;
+  final VoidCallback? onGuide;
+
+  /// Outer height including background padding, used as the sliver extent.
+  static const double extent = 98;
+
+  @override
+  Widget build(BuildContext context) {
+    final done = doneCount == totalCount;
+    return Container(
+      color: AppColors.background,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 9),
+      child: ChunkyCard(
+        colors: colors,
+        radius: 18,
+        padding: const EdgeInsets.fromLTRB(18, 10, 8, 10),
+        child: SizedBox(
+          height: 56,
           child: Row(
             children: [
-              Container(
-                width: _badgeSize,
-                height: _badgeSize,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.surface,
-                  border: Border.all(color: badgeBorderColor, width: 3),
-                ),
-                child: isCompleted
-                    ? const Icon(
-                        Icons.check_rounded,
-                        size: 22,
-                        color: AppColors.success,
-                      )
-                    : Text(
-                        '$unitNumber',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: badgeTextColor,
-                        ),
-                      ),
-              ),
-              const SizedBox(width: 12),
               Expanded(
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'UNIDAD $unitNumber',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.2,
-                        color: AppColors.darkBrownLight,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          'UNIDAD $unitNumber',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (done)
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            size: 14,
+                            color: Colors.white,
+                          )
+                        else
+                          Text(
+                            '$doneCount/$totalCount',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white.withValues(alpha: 0.8),
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
                       title,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.dmSans(
-                        fontSize: 16,
+                        fontSize: 19,
                         fontWeight: FontWeight.w900,
-                        color: AppColors.darkBrown,
+                        color: Colors.white,
                         height: 1.2,
                       ),
                     ),
                   ],
                 ),
               ),
-              if (isCurrent) ...[
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.play_arrow_rounded,
-                  size: 28,
-                  color: AppColors.accentRed,
+              Container(
+                width: 2,
+                height: 40,
+                color: Colors.white.withValues(alpha: 0.25),
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                onPressed: onGuide,
+                tooltip: 'Guía de la unidad',
+                icon: const Icon(
+                  Icons.menu_book_rounded,
+                  color: Colors.white,
+                  size: 26,
                 ),
-              ],
+              ),
             ],
           ),
         ),
       ),
     );
-  }
-}
-
-/// Circular node for a single exercise.
-///
-/// Diameter is uniform across states — the current state is conveyed by
-/// border/glow, never by size. Only the current node shows its label
-/// (Duolingo-style), painted on a background chip so the connector line can
-/// never cut through the text.
-class ExercisePathNode extends StatelessWidget {
-  const ExercisePathNode({
-    super.key,
-    required this.exercise,
-    required this.state,
-    this.onTap,
-  });
-
-  final Exercise exercise;
-  final PathNodeState state;
-  final VoidCallback? onTap;
-
-  static const double _diameter = MapGeometry.nodeDiameter;
-
-  @override
-  Widget build(BuildContext context) {
-    final typeIcon = _getTypeIcon(exercise.type);
-    final typeColor = _getTypeColor(exercise.type);
-    final isPending = state == PathNodeState.pending;
-    final isCurrent = state == PathNodeState.current;
-
-    final borderColor = switch (state) {
-      PathNodeState.completed => AppColors.success,
-      PathNodeState.current => AppColors.accentRed,
-      PathNodeState.pending => AppColors.darkBrown.withValues(alpha: 0.30),
-    };
-    final borderWidth = switch (state) {
-      PathNodeState.current => 4.0,
-      PathNodeState.completed => 3.5,
-      PathNodeState.pending => 3.0,
-    };
-
-    final node = CircularPathNode(
-      state: state,
-      diameter: _diameter,
-      background: AppColors.surface,
-      borderColor: borderColor,
-      borderWidth: borderWidth,
-      iconData: typeIcon,
-      iconColor: isPending ? AppColors.onLocked : typeColor,
-      iconSize: isPending ? 24.0 : 28.0,
-      completionBadge: state == PathNodeState.completed,
-      voxiAsset: isCurrent ? 'assets/images/voxi_awake.png' : null,
-    );
-
-    return Semantics(
-      button: true,
-      label: '${exercise.name} (${exercise.type})',
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            node,
-            if (isCurrent) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  exercise.name,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.darkBrown,
-                    height: 1.15,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  IconData _getTypeIcon(String type) {
-    switch (type.toLowerCase()) {
-      case 'reading':
-        return Icons.menu_book_rounded;
-      case 'quiz':
-        return Icons.quiz_rounded;
-      case 'writing':
-        return Icons.edit_rounded;
-      case 'oratory':
-      case 'oratory_minigame':
-        return Icons.record_voice_over_rounded;
-      default:
-        return Icons.star_rounded;
-    }
-  }
-
-  Color _getTypeColor(String type) {
-    switch (type.toLowerCase()) {
-      case 'reading':
-        return AppColors.primary;
-      case 'quiz':
-        return AppColors.accentRed;
-      case 'writing':
-        return AppColors.success;
-      case 'oratory':
-      case 'oratory_minigame':
-        return AppColors.tertiary;
-      default:
-        return AppColors.onSurface;
-    }
   }
 }

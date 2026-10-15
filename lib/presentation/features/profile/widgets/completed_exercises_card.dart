@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../shared/widgets/section_header.dart';
-import '../../../shared/widgets/voxi_state.dart';
+import '../../../../domain/models/lesson_status.dart';
 import '../../../../domain/models/progress.dart';
+import '../../../../utils/exercise_name_utils.dart';
 import '../../../shared/providers/content_provider.dart';
+import '../../../shared/widgets/chunky.dart';
+import '../../../shared/widgets/exercise_type_style.dart';
 
 class CompletedExercisesCard extends ConsumerWidget {
   const CompletedExercisesCard({super.key, required this.progress});
@@ -15,93 +17,96 @@ class CompletedExercisesCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final nameMap = ref.watch(exerciseNameMapProvider);
+    final exercises = ref.watch(exerciseByIdProvider);
 
     final completed = progress
-        .expand((p) => p.completedExercises)
+        .where((p) => p.status == LessonStatus.completed)
         .toList();
 
     if (completed.isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.accentRed, width: 3.5),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.accentRed,
-            offset: Offset(0, 6),
-            blurRadius: 0,
-            spreadRadius: 0,
-          ),
-          BoxShadow(
-            color: Color(0x33D93B27),
-            offset: Offset(0, 2),
-            blurRadius: 8,
-            spreadRadius: 0,
-          ),
-        ],
-      ),
+    return ChunkyCard(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader(
-            title: 'Ejercicios completados',
-            icon: Icons.checklist_rounded,
-            showVoxi: true,
-            voxiState: VoxiState.awake,
+          Text(
+            'Ejercicios completados',
+            style: GoogleFonts.dmSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: AppColors.darkBrown,
+            ),
           ),
-          const SizedBox(height: 12),
-          ...completed.map((ex) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: AppColors.successContainer,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.success, width: 2),
-                      ),
-                      child: Center(
-                        child: Icon(Icons.check_rounded, size: 18, color: AppColors.success),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        nameMap[ex.exerciseId] ?? ex.exerciseId,
-                        style: GoogleFonts.dmSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.darkBrown,
-                        ),
-                      ),
-                    ),
-                    if (ex.score > 0)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryContainer,
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: AppColors.primary, width: 2),
-                        ),
-                        child: Text(
-                          '+${ex.score} XP',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              )),
+          const SizedBox(height: 10),
+          for (final entry in completed)
+            _CompletedRow(
+              entry: entry,
+              type: exercises[entry.exerciseId]?.type ?? '',
+              name: () {
+                final exercise = exercises[entry.exerciseId];
+                if (exercise == null) return 'Ejercicio';
+                return exercise.name.isNotEmpty
+                    ? exercise.name
+                    : formatExerciseType(exercise.type);
+              }(),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompletedRow extends StatelessWidget {
+  const _CompletedRow({
+    required this.entry,
+    required this.type,
+    required this.name,
+  });
+
+  final Progress entry;
+  final String type;
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = ExerciseTypeStyle.of(type);
+    final xp = entry.score ?? 0;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: style.colors.face,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(color: style.colors.lip, offset: const Offset(0, 3)),
+              ],
+            ),
+            child: Icon(style.icon, size: 19, color: style.colors.content),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.dmSans(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.darkBrown,
+              ),
+            ),
+          ),
+          if (xp > 0)
+            ChunkyTag(
+              label: '+$xp XP',
+              icon: Icons.bolt_rounded,
+              color: AppColors.accentRed,
+            ),
         ],
       ),
     );

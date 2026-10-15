@@ -8,6 +8,7 @@ import 'package:voxlab/domain/models/lesson_status.dart';
 import 'package:voxlab/domain/models/progress.dart';
 import 'package:voxlab/domain/models/user.dart';
 import 'package:voxlab/presentation/features/analyze/analyze_screen.dart';
+import 'package:voxlab/presentation/features/analyze/providers/weekly_progress_provider.dart';
 import 'package:voxlab/presentation/features/practice/practice_screen.dart';
 import 'package:voxlab/presentation/features/profile/profile_screen.dart';
 import 'package:voxlab/presentation/features/splash/splash_screen.dart';
@@ -15,7 +16,6 @@ import 'package:voxlab/presentation/shared/providers/auth_provider.dart';
 import 'package:voxlab/presentation/shared/providers/content_provider.dart';
 import 'package:voxlab/presentation/shared/providers/progress_provider.dart';
 import 'package:voxlab/core/storage/secure_storage.dart';
-import 'package:voxlab/data/remote/services/progress_api_service.dart';
 import 'package:voxlab/domain/repositories/i_auth_repository.dart';
 
 import '../fixtures/map_fixtures.dart';
@@ -47,7 +47,7 @@ class _FakeProgressNotifier extends ProgressNotifier {
 
 class _FakeAuthNotifier extends AuthNotifier {
   _FakeAuthNotifier(Ref ref)
-      : super(_FakeRepo(), SecureStorage(), ref, _FakeApi()) {
+      : super(_FakeRepo(), SecureStorage()) {
     state = AuthState(
       user: User(
         id: 'u1',
@@ -74,6 +74,9 @@ class _FakeRepo implements IAuthRepository {
   Future<void> logout() async {}
 
   @override
+  Future<void> deleteAccount() async {}
+
+  @override
   Future<User> getCurrentUser() => throw UnimplementedError();
 
   @override
@@ -85,19 +88,6 @@ class _FakeRepo implements IAuthRepository {
 
   @override
   String? getToken() => null;
-}
-
-class _FakeApi extends ProgressApiService {
-  @override
-  Future<UserProgress> getProgress() async => throw UnimplementedError();
-
-  @override
-  Future<ProgressSubmitData> submitProgress(ProgressSubmitRequest r) =>
-      throw UnimplementedError();
-
-  @override
-  Future<ProgressSubmitData> syncProgress(List<ProgressSubmitRequest> e) =>
-      throw UnimplementedError();
 }
 
 void main() {
@@ -147,6 +137,7 @@ void main() {
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
+    useReducedMotion(tester);
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(
@@ -154,6 +145,8 @@ void main() {
         overrides: [
           tracksProvider.overrideWith((_) async => [buildDemoTrack()]),
           progressNotifierProvider.overrideWith(_FakeProgressNotifier.new),
+          // A fixed Tuesday keeps the weekly chart golden stable.
+          clockProvider.overrideWithValue(() => DateTime(2026, 3, 17, 12)),
           authProvider.overrideWith((ref) => _FakeAuthNotifier(ref)),
         ],
         child: MaterialApp(
@@ -196,6 +189,7 @@ void main() {
   testWidgets('splash golden', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
+    useReducedMotion(tester);
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(

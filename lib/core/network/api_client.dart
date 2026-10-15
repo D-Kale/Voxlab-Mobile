@@ -13,7 +13,10 @@ final apiClientProvider = Provider<Dio>((ref) {
       baseUrl: AppConstants.apiBaseUrl,
       connectTimeout: AppConstants.connectTimeout,
       receiveTimeout: AppConstants.receiveTimeout,
-      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
       responseType: ResponseType.json,
     ),
   );
@@ -22,6 +25,8 @@ final apiClientProvider = Provider<Dio>((ref) {
     AuthInterceptor(ref: ref),
     if (kDebugMode)
       LogInterceptor(
+        // Headers carry the session token: keep them out of the logs.
+        requestHeader: false,
         requestBody: false,
         responseBody: true,
         logPrint: (o) => debugPrint(o.toString()),
@@ -35,10 +40,12 @@ ApiException mapDioException(DioException e) {
   return switch (e.type) {
     DioExceptionType.connectionTimeout ||
     DioExceptionType.receiveTimeout ||
-    DioExceptionType.sendTimeout =>
-      NetworkException('Tiempo de espera agotado. Revisá tu conexión.'),
-    DioExceptionType.connectionError =>
-      NetworkException('Sin conexión a internet.'),
+    DioExceptionType.sendTimeout => NetworkException(
+      'Tiempo de espera agotado. Revisá tu conexión.',
+    ),
+    DioExceptionType.connectionError => NetworkException(
+      'Sin conexión a internet.',
+    ),
     DioExceptionType.badResponse => _mapStatusCodeError(e),
     _ => NetworkException('Ocurrió un error inesperado.'),
   };
@@ -57,10 +64,10 @@ ApiException _mapStatusCodeError(DioException e) {
     401 => UnauthorizedException(),
     404 => NotFoundException('Recurso no encontrado'),
     409 => ConflictException(
-        message == 'email already registered'
-            ? 'Ese email ya está registrado. Probá iniciar sesión.'
-            : 'Este recurso ya existe.',
-      ),
+      message == 'email already registered'
+          ? 'Ese email ya está registrado. Probá iniciar sesión.'
+          : 'Este recurso ya existe.',
+    ),
     422 => ServerException('Revisá los datos ingresados'),
     502 || 503 => ServerException('Servicio temporalmente no disponible'),
     _ => ServerException('Error interno del servidor'),

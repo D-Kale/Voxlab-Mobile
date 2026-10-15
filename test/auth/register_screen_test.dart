@@ -6,11 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:voxlab/core/network/api_client.dart';
 import 'package:voxlab/core/router/routes.dart';
 import 'package:voxlab/data/local/local_progress_store.dart';
-import 'package:voxlab/data/remote/services/progress_api_service.dart';
 import 'package:voxlab/domain/models/user.dart';
 import 'package:voxlab/domain/models/progress.dart';
 import 'package:voxlab/domain/repositories/i_auth_repository.dart';
 import 'package:voxlab/presentation/features/auth/register_screen.dart';
+import 'package:voxlab/presentation/shared/widgets/chunky.dart';
+
+import '../golden/golden_fonts.dart';
 import 'package:voxlab/presentation/shared/providers/repository_providers.dart';
 
 class _FakeAuthRepository implements IAuthRepository {
@@ -43,6 +45,9 @@ class _FakeAuthRepository implements IAuthRepository {
   Future<void> logout() async {}
 
   @override
+  Future<void> deleteAccount() async {}
+
+  @override
   Future<User> getCurrentUser() => throw UnimplementedError();
 
   @override
@@ -54,41 +59,6 @@ class _FakeAuthRepository implements IAuthRepository {
 
   @override
   String? getToken() => null;
-}
-
-class _FakeProgressApiService implements ProgressApiService {
-  _FakeProgressApiService();
-
-  @override
-  Future<UserProgress> getProgress() async {
-    return UserProgress(
-      xp: 0,
-      streakDays: 0,
-      completedExerciseIds: [],
-      weeklyChart: [],
-      lastSyncedAt: DateTime.now().toIso8601String(),
-    );
-  }
-
-  @override
-  Future<ProgressSubmitData> submitProgress(ProgressSubmitRequest request) async {
-    return ProgressSubmitData(
-      xp: 90,
-      streakDays: 1,
-      newlyCompleted: [request.exerciseId],
-      streakUpdated: true,
-    );
-  }
-
-  @override
-  Future<ProgressSubmitData> syncProgress(List<ProgressSubmitRequest> entries) async {
-    return ProgressSubmitData(
-      xp: 0,
-      streakDays: 0,
-      newlyCompleted: [],
-      streakUpdated: false,
-    );
-  }
 }
 
 class _FakeLocalProgressStore extends LocalProgressStore {
@@ -135,11 +105,11 @@ Future<void> _pumpRegisterScreen(
   WidgetTester tester,
   _FakeAuthRepository repo,
 ) async {
+  useReducedMotion(tester);
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         authRepositoryProvider.overrideWithValue(repo),
-        progressApiServiceProvider.overrideWithValue(_FakeProgressApiService()),
         localProgressStoreProvider.overrideWithValue(_FakeLocalProgressStore()),
       ],
       child: MaterialApp.router(routerConfig: _buildRouter()),
@@ -163,7 +133,7 @@ void main() {
     await _pumpRegisterScreen(tester, repo);
 
     await _fillForm(tester);
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
+    await tester.tap(find.widgetWithText(ChunkyButton, 'CREAR CUENTA'));
     await tester.pumpAndSettle();
 
     expect(repo.registerCalls, 1);
@@ -181,14 +151,14 @@ void main() {
     await _pumpRegisterScreen(tester, repo);
 
     await _fillForm(tester);
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
+    await tester.tap(find.widgetWithText(ChunkyButton, 'CREAR CUENTA'));
     await tester.pumpAndSettle();
 
     expect(
       find.text('Ese email ya está registrado. Probá iniciar sesión.'),
       findsOneWidget,
     );
-    expect(find.widgetWithText(ElevatedButton, 'Crear cuenta'), findsOneWidget);
+    expect(find.widgetWithText(ChunkyButton, 'CREAR CUENTA'), findsOneWidget);
     expect(find.text('MAP_OK'), findsNothing);
   });
 
@@ -197,7 +167,7 @@ void main() {
     await _pumpRegisterScreen(tester, repo);
 
     await _fillForm(tester);
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
+    await tester.tap(find.widgetWithText(ChunkyButton, 'CREAR CUENTA'));
     await tester.pumpAndSettle();
 
     expect(
@@ -219,7 +189,7 @@ void main() {
     // Enter invalid email
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(1), 'not-an-email');
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Crear cuenta'));
+    await tester.tap(find.widgetWithText(ChunkyButton, 'CREAR CUENTA'));
     await tester.pumpAndSettle();
 
     expect(find.text('Email inválido'), findsOneWidget);

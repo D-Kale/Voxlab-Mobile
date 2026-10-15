@@ -1,7 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../domain/models/exercise_outcome.dart';
+import '../../../../domain/models/session_result.dart';
+import '../../../shared/widgets/chunky.dart';
+import '../../../shared/widgets/lesson_widgets.dart';
 
 class ReadingWidget extends StatefulWidget {
   const ReadingWidget({
@@ -35,20 +39,27 @@ class _ReadingWidgetState extends State<ReadingWidget> {
     super.initState();
     _scrollController.addListener(_onScroll);
     _startTimer();
+    // A text that fits without scrolling is already read to the bottom;
+    // otherwise the button stayed on "Leyendo..." for the whole timer.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
   }
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
-    if (maxScroll <= 0 || (currentScroll >= maxScroll - 10 && !_hasScrolledToBottom)) {
+    if (maxScroll <= 0 ||
+        (currentScroll >= maxScroll - 10 && !_hasScrolledToBottom)) {
       setState(() => _hasScrolledToBottom = true);
     }
   }
 
-  bool get _canScroll => _scrollController.hasClients && _scrollController.position.maxScrollExtent > 0;
+  bool get _canScroll =>
+      _scrollController.hasClients &&
+      _scrollController.position.maxScrollExtent > 0;
 
-  bool get _canComplete => _hasScrolledToBottom || _elapsedSeconds >= widget.readingTimeSeconds;
+  bool get _canComplete =>
+      _hasScrolledToBottom || _elapsedSeconds >= widget.readingTimeSeconds;
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -75,111 +86,111 @@ class _ReadingWidgetState extends State<ReadingWidget> {
   }
 
   void _continueToSummary() {
-    widget.onCompleted?.call(ExerciseOutcome(score: widget.points));
+    widget.onCompleted?.call(
+      ExerciseOutcome(
+        score: widget.points,
+        sessionResult: SessionResultBuilder.fromReading(),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final remaining = widget.readingTimeSeconds - _elapsedSeconds;
     final minutes = remaining ~/ 60;
     final seconds = remaining % 60;
+    final progress = _isReadingComplete || widget.readingTimeSeconds == 0
+        ? 1.0
+        : _elapsedSeconds / widget.readingTimeSeconds;
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Semantics(
-                excludeSemantics: true,
-                child: Icon(Icons.timer, size: 18, color: AppColors.primary),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: LessonProgressBar(
+                value: progress,
+                color: _canComplete ? AppColors.success : AppColors.primary,
               ),
-              const SizedBox(width: 8),
-              Semantics(
-                label: 'Tiempo restante: $minutes minutos con $seconds segundos',
-                child: Text(
-                  '$minutes:${seconds.toString().padLeft(2, '0')}',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              Semantics(
-                label: 'Recompensa: ${widget.points} puntos de experiencia',
-                child: Text(
-                  '+${widget.points} XP',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: AppColors.secondary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: _isReadingComplete ? 1.0 : _elapsedSeconds / widget.readingTimeSeconds,
-            backgroundColor: AppColors.surfaceContainerHigh,
-            valueColor: AlwaysStoppedAnimation(
-              _isReadingComplete ? AppColors.success : AppColors.primary,
             ),
-            minHeight: 4,
-            borderRadius: BorderRadius.circular(2),
+            const SizedBox(width: 12),
+            Semantics(
+              label: 'Tiempo restante: $minutes minutos con $seconds segundos',
+              excludeSemantics: true,
+              child: ChunkyTag(
+                label: '$minutes:${seconds.toString().padLeft(2, '0')}',
+                icon: Icons.timer_rounded,
+                color: AppColors.onPrimaryContainer,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Leé con atención',
+          style: GoogleFonts.dmSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            color: AppColors.darkBrownLight,
           ),
-          const SizedBox(height: 24),
-          Text(
-            widget.title,
-            style: theme.textTheme.titleLarge?.copyWith(height: 1.3),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          widget.title,
+          style: GoogleFonts.dmSans(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            color: AppColors.darkBrown,
+            height: 1.25,
           ),
-          const SizedBox(height: 16),
-          Expanded(
+        ),
+        const SizedBox(height: 14),
+        Expanded(
+          child: ChunkyCard(
+            padding: EdgeInsets.zero,
             child: SingleChildScrollView(
               controller: _scrollController,
+              padding: const EdgeInsets.all(20),
               child: Text(
                 widget.content,
-                style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Semantics(
-            label: _isReadingComplete
-                ? 'Continuar a resumen del ejercicio'
-                : _canComplete
-                    ? 'Marcar como leído'
-                    : _canScroll
-                        ? 'Desplazate hasta el final para completar'
-                        : 'Leyendo...',
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isReadingComplete
-                    ? _continueToSummary
-                    : _canComplete
-                        ? _markAsRead
-                        : null,
-                style: _isReadingComplete
-                    ? ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.success,
-                        foregroundColor: AppColors.onSurface,
-                      )
-                    : null,
-                child: Text(
-                  _isReadingComplete
-                      ? 'Continuar'
-                      : _canComplete
-                          ? 'Marcar como leído'
-                          : _canScroll
-                              ? 'Desplazate hasta el final'
-                              : 'Leyendo...',
+                style: GoogleFonts.dmSans(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.darkBrown,
+                  height: 1.65,
                 ),
               ),
             ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 16),
+        Semantics(
+          label: _isReadingComplete
+              ? 'Continuar a resumen del ejercicio'
+              : _canComplete
+              ? 'Marcar como leído'
+              : _canScroll
+              ? 'Desplazate hasta el final para completar'
+              : 'Leyendo...',
+          child: ChunkyButton(
+            label: _isReadingComplete
+                ? 'CONTINUAR'
+                : _canComplete
+                ? 'MARCAR COMO LEÍDO'
+                : _canScroll
+                ? 'DESPLAZATE HASTA EL FINAL'
+                : 'LEYENDO...',
+            colors: ChunkyColors.green,
+            onPressed: _isReadingComplete
+                ? _continueToSummary
+                : _canComplete
+                ? _markAsRead
+                : null,
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
     );
   }
 }
