@@ -58,13 +58,11 @@ Sale en `build/app/outputs/bundle/release/app-release.aab`. Antes de cada actual
 
 ## 5. Política de privacidad y eliminación de cuenta
 
-Play exige una URL pública para cada una. Están listas en `store/legal/`:
-- `privacidad.html`
-- `eliminar-cuenta.html`
+Play exige una URL pública para cada una. Publicadas (código en `web/`, se suben con `scripts/deploy_web.sh`):
+- https://tvoxlab.tech/app/privacidad.html
+- https://tvoxlab.tech/app/eliminar-cuenta.html
 
-**Falta:** reemplazar `CONTACTO_EMAIL` por el correo de soporte de Borealabs y publicarlas. Por ejemplo, copiándolas a `web/` antes de `scripts/deploy_web.sh` quedan en:
-- `https://tvoxlab.tech/app/privacidad.html`
-- `https://tvoxlab.tech/app/eliminar-cuenta.html`
+Contacto: voxlab@borealabs.org
 
 La app ya tiene **Perfil → Eliminar mi cuenta** (borra la cuenta y todos los datos en el servidor).
 
