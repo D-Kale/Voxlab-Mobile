@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
@@ -62,12 +63,16 @@ class AnalyzerService {
     int? targetSeconds,
     String? topic,
   }) async {
+    // On the web the take is a blob: URL, not a file: read its bytes once.
+    final webBytes = kIsWeb ? await _blobBytes(path) : null;
     for (var attempt = 0; ; attempt++) {
       try {
         final response = await _dio.post(
           '/exercises/analyze-speech',
           data: FormData.fromMap({
-            'audio': await MultipartFile.fromFile(path, filename: fileName),
+            'audio': webBytes != null
+                ? MultipartFile.fromBytes(webBytes, filename: fileName)
+                : await MultipartFile.fromFile(path, filename: fileName),
             'min_seconds': ?minSeconds,
             'target_seconds': ?targetSeconds,
             if (topic != null && topic.isNotEmpty) 'topic': topic,
@@ -85,6 +90,15 @@ class AnalyzerService {
       }
     }
   }
+}
+
+/// Bytes of a recording made in the browser (`record` returns a blob URL).
+Future<List<int>> _blobBytes(String url) async {
+  final response = await Dio().get<List<int>>(
+    url,
+    options: Options(responseType: ResponseType.bytes),
+  );
+  return response.data ?? const [];
 }
 
 final analyzerServiceProvider = Provider<AnalyzerService>((ref) {

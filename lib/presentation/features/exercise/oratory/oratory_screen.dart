@@ -199,7 +199,6 @@ class _OratoryWidgetState extends ConsumerState<OratoryWidget>
       minSeconds: widget.minDurationSeconds,
     );
     final canUseAi =
-        !kIsWeb &&
         take.path != null &&
         metrics.hasSpeech &&
         metrics.duration.inSeconds >= _minAiSeconds;
