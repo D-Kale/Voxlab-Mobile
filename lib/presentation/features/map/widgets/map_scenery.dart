@@ -397,11 +397,15 @@ class MapParallaxBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // CustomPaint can draw outside its box: clip so the backdrop never
+    // spills over the stats bar above the map.
     return IgnorePointer(
-      child: RepaintBoundary(
-        child: CustomPaint(
-          painter: _BackdropPainter(controller),
-          size: Size.infinite,
+      child: ClipRect(
+        child: RepaintBoundary(
+          child: CustomPaint(
+            painter: _BackdropPainter(controller),
+            size: Size.infinite,
+          ),
         ),
       ),
     );

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../domain/models/exercise_outcome.dart';
+import '../../../../domain/models/session_result.dart';
 import '../../../shared/widgets/chunky.dart';
 import '../../../shared/widgets/lesson_widgets.dart';
 
@@ -85,7 +86,12 @@ class _ReadingWidgetState extends State<ReadingWidget> {
   }
 
   void _continueToSummary() {
-    widget.onCompleted?.call(ExerciseOutcome(score: widget.points));
+    widget.onCompleted?.call(
+      ExerciseOutcome(
+        score: widget.points,
+        sessionResult: SessionResultBuilder.fromReading(),
+      ),
+    );
   }
 
   @override

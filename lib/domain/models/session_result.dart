@@ -46,6 +46,8 @@ class SessionSkill {
     'fluidez': (label: 'Fluidez', icon: Icons.graphic_eq),
     'muletillas': (label: 'Muletillas', icon: Icons.record_voice_over_outlined),
     'ritmo': (label: 'Ritmo', icon: Icons.speed),
+    'comprension': (label: 'Comprensión', icon: Icons.lightbulb_outline),
+    'lectura': (label: 'Lectura completa', icon: Icons.menu_book_outlined),
   };
 
   factory SessionSkill.fromBreakdown(String key, int percent) {
@@ -159,37 +161,6 @@ class SessionResult {
 class SessionResultBuilder {
   SessionResultBuilder._();
 
-  static const _skillNames = [
-    'Dicción',
-    'Postura',
-    'Confianza',
-    'Contacto Visual',
-  ];
-
-  static const _skillOffsets = [2, -15, 5, -25];
-
-  static const _skillIcons = [
-    Icons.record_voice_over_outlined,
-    Icons.accessibility_new_outlined,
-    Icons.psychology_outlined,
-    Icons.visibility_outlined,
-  ];
-
-  static const _tipsBySkill = {
-    'Dicción':
-        'Articulá cada palabra con pausas breves '
-        'entre frases para ganar claridad.',
-    'Postura':
-        'Probá apoyar el peso en ambos pies: '
-        'transmite estabilidad ante la audiencia.',
-    'Confianza':
-        'Arrancá con una frase que domines perfecto; '
-        'un buen inicio empuja todo el resto.',
-    'Contacto Visual':
-        'Elegí tres puntos de la sala y rotá la mirada '
-        'entre ellos mientras hablás.',
-  };
-
   static String levelFor(int score) {
     if (score >= 90) return 'Comunicador excelente';
     if (score >= 75) return 'Comunicador confiable';
@@ -197,34 +168,59 @@ class SessionResultBuilder {
     return 'Comunicador en formación';
   }
 
+  /// Fallback when an exercise reports no result of its own: the score
+  /// only, no skill breakdown (inventing skills would mislead the user).
   static SessionResult fromScore(int score) {
     final overall = score.clamp(0, 100);
-    final skills = <SessionSkill>[];
-    for (var i = 0; i < _skillNames.length; i++) {
-      skills.add(
-        SessionSkill(
-          key: _skillNames[i],
-          label: _skillNames[i],
-          icon: _skillIcons[i],
-          percent: (overall + _skillOffsets[i]).clamp(5, 99),
-        ),
-      );
-    }
-
-    final weakest = skills.reduce((a, b) => a.percent <= b.percent ? a : b);
-
     return SessionResult(
       overall: overall,
       level: levelFor(overall),
-      skills: skills,
-      tips: [
-        const SessionTip(
-          text:
-              'Buen trabajo: mantuviste la constancia '
-              'y terminaste la sesión completa.',
+      skills: const [],
+      tips: const [
+        SessionTip(
+          text: 'Buen trabajo: terminaste el ejercicio completo.',
           isPositive: true,
         ),
-        SessionTip(text: _tipsBySkill[weakest.key]!, isPositive: false),
+      ],
+    );
+  }
+
+  /// Quiz: the score is the share of correct answers.
+  static SessionResult fromQuiz({required int correct, required int total}) {
+    final overall = total == 0 ? 0 : (correct / total * 100).round();
+    return SessionResult(
+      overall: overall,
+      level: levelFor(overall),
+      skills: [SessionSkill.fromBreakdown('comprension', overall)],
+      tips: [
+        SessionTip(
+          text: correct == total
+              ? '¡Respondiste todas bien! Entendiste el tema.'
+              : 'Respondiste $correct de $total preguntas correctamente.',
+          isPositive: correct == total,
+        ),
+        if (correct < total)
+          const SessionTip(
+            text: 'Repasá la lectura de la unidad y volvé a intentarlo.',
+            isPositive: false,
+          ),
+      ],
+    );
+  }
+
+  /// Reading has nothing to grade: finishing the text is the goal.
+  static SessionResult fromReading() {
+    return SessionResult(
+      overall: 100,
+      level: levelFor(100),
+      skills: [SessionSkill.fromBreakdown('lectura', 100)],
+      tips: const [
+        SessionTip(
+          text:
+              'Leíste el texto completo. Lo vas a poner en práctica en '
+              'los próximos ejercicios.',
+          isPositive: true,
+        ),
       ],
     );
   }
