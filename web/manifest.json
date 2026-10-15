@@ -3,9 +3,9 @@
     "short_name": "Voxlab",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "Gamified public speaking learning app",
+    "background_color": "#F4A221",
+    "theme_color": "#F4A221",
+    "description": "Entrená tu oratoria jugando: lecturas, quizzes, escritura y práctica de voz con IA.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
@@ -31,5 +31,6 @@
             "type": "image/png",
             "purpose": "maskable"
         }
-    ]
+    ],
+    "lang": "es"
 }
