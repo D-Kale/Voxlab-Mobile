@@ -110,6 +110,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
+  /// Deletes the account on the server, then signs out. Throws when the
+  /// server could not delete it, so the screen can say so.
+  Future<void> deleteAccount() async {
+    state = state.copyWith(isBusy: true);
+    try {
+      await _repository.deleteAccount();
+    } catch (e) {
+      state = state.copyWith(isBusy: false);
+      rethrow;
+    }
+    await _storage.clearToken();
+    state = const AuthState(status: AuthStatus.unauthenticated);
+  }
+
   void clearError() {
     state = state.copyWith(error: null);
   }

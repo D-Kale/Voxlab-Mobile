@@ -171,6 +171,16 @@ class GameRecordsNotifier extends Notifier<GameRecords> {
     );
   }
 
+  /// Forgets this user's records on the device (account deletion).
+  Future<void> clear() async {
+    final userId = _userId;
+    state = const GameRecords();
+    if (userId == null) return;
+    try {
+      await ref.read(secureStorageProvider).delete(_key(userId));
+    } catch (_) {}
+  }
+
   Future<void> _persist() async {
     final userId = _userId;
     if (userId == null) return;

@@ -4,4 +4,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Plain http only in debug, for a local backend (see AGENTS.md).
+         Release builds talk to https://tvoxlab.tech only. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>

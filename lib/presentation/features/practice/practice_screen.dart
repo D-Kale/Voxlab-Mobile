@@ -88,8 +88,15 @@ class PracticeScreen extends ConsumerWidget {
   }
 }
 
+/// True while a game screen is open, so a double tap opens it once.
+bool _opening = false;
+
 void _open(BuildContext context, GameId game) {
-  context.push(AppRoutes.gamePath(game.slug));
+  if (_opening) return;
+  _opening = true;
+  context
+      .push(AppRoutes.gamePath(game.slug))
+      .whenComplete(() => _opening = false);
 }
 
 /// Red hero card: the improvisation wheel as a daily streak challenge.

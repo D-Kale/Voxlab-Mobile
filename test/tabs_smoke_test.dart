@@ -66,6 +66,9 @@ class _FakeAuthRepository implements IAuthRepository {
   Future<void> logout() async {}
 
   @override
+  Future<void> deleteAccount() async {}
+
+  @override
   Future<User> getCurrentUser() => throw UnimplementedError();
 
   @override

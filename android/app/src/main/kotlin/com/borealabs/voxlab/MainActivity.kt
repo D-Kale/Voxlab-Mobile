@@ -1,4 +1,4 @@
-package com.example.voxlab
+package com.borealabs.voxlab
 
 import io.flutter.embedding.android.FlutterActivity
 

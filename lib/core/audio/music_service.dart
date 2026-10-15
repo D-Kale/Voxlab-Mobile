@@ -62,6 +62,12 @@ class MusicService {
     _sync();
   }
 
+  /// Retries after a blocked start: browsers refuse audio until the first
+  /// user gesture, so the map music starts on the first tap.
+  void onUserGesture() {
+    if (_playing == null && _desired != null) _sync();
+  }
+
   /// App went to background / came back.
   void setPaused(bool paused) {
     _paused = paused;
@@ -187,5 +193,9 @@ class _MusicScopeState extends ConsumerState<MusicScope>
   }
 
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) => Listener(
+    behavior: HitTestBehavior.translucent,
+    onPointerDown: (_) => _music.onUserGesture(),
+    child: widget.child,
+  );
 }

@@ -6,9 +6,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/audio/sound_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/routes.dart';
+import '../../../data/local/local_progress_store.dart';
 import '../../../data/local/onboarding_store.dart';
 import '../../shared/providers/auth_provider.dart';
 import '../../shared/providers/content_provider.dart';
+import '../../shared/providers/game_records_provider.dart';
 import '../../shared/providers/progress_provider.dart';
 import '../../shared/widgets/chunky.dart';
 import '../../shared/widgets/motion.dart';
@@ -44,7 +46,11 @@ class ProfileScreen extends ConsumerWidget {
         const _SettingsCard(),
       ] else
         const _LoadingProfile(),
-      if (auth.isAuthenticated) const _LogoutButton(),
+      if (auth.isAuthenticated) ...[
+        const _LogoutButton(),
+        const SizedBox(height: 4),
+        const _DeleteAccountButton(),
+      ],
     ];
 
     return Scaffold(
@@ -320,6 +326,87 @@ class _LoadingProfile extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Account deletion (required by Google Play for apps with sign-up).
+class _DeleteAccountButton extends ConsumerWidget {
+  const _DeleteAccountButton();
+
+  Future<void> _confirm(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          '¿Eliminar tu cuenta?',
+          style: GoogleFonts.dmSans(
+            fontWeight: FontWeight.w900,
+            color: AppColors.darkBrown,
+          ),
+        ),
+        content: Text(
+          'Se borran para siempre tu cuenta, tu progreso, tus XP y tus '
+          'récords. No se puede deshacer.',
+          style: GoogleFonts.dmSans(
+            fontWeight: FontWeight.w600,
+            color: AppColors.darkBrown,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.accentRed),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+
+    final userId = ref.read(authProvider).user?.id;
+    try {
+      await ref.read(authProvider.notifier).deleteAccount();
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No pudimos eliminar tu cuenta. Revisá tu conexión e intentá '
+              'de nuevo.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+    // Local data of the deleted account.
+    if (userId != null) {
+      await ref.read(localProgressStoreProvider).clear(userId);
+    }
+    await ref.read(gameRecordsProvider.notifier).clear();
+    if (context.mounted) context.go(AppRoutes.authWall);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Center(
+      child: TextButton(
+        onPressed: () => _confirm(context, ref),
+        child: Text(
+          'Eliminar mi cuenta',
+          style: GoogleFonts.dmSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: AppColors.darkBrownLight,
+            decoration: TextDecoration.underline,
+          ),
+        ),
       ),
     );
   }
