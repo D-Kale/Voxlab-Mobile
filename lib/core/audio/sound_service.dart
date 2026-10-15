@@ -74,18 +74,20 @@ class SoundService {
   }
 }
 
-bool _sessionConfigured = false;
-
-/// Mix with the user's own music and respect the silent switch: UI sounds
-/// and soft background loops, not media.
+/// Ambient audio: mixes with the user's own music and respects the silent
+/// switch on iOS (the generic flags cannot express both there). Applied
+/// again before each loop starts, because recording switches the session
+/// to play-and-record.
 Future<void> configureAudioSession() async {
-  if (_sessionConfigured) return;
-  _sessionConfigured = true;
   await AudioPlayer.global.setAudioContext(
-    AudioContextConfig(
-      focus: AudioContextConfigFocus.mixWithOthers,
-      respectSilence: true,
-    ).build(),
+    AudioContext(
+      iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
+      android: const AudioContextAndroid(
+        contentType: AndroidContentType.sonification,
+        usageType: AndroidUsageType.game,
+        audioFocus: AndroidAudioFocus.none,
+      ),
+    ),
   );
 }
 
